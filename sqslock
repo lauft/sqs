@@ -18,7 +18,7 @@ while true ; do
 	if [ $? -eq 0 ] ; then
 	  break;
 	fi
-	echo -en "sqslock: waiting ...\r"
+	echo -en "sqslock: waiting for lock on '${dir}'...\r"
 	sleep 3
 done
 
