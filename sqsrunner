@@ -31,7 +31,7 @@ while [ true ] ; do
 
   task=`cat ${queue}/${id}`
 	rm -f ${queue}/${id}
-	echo "sqsrunner: executing '${task}'"
+	echo "sqsrunner: executing task ${id}: '${task}'"
 	./sqsunlock ${queue}
 		
   # start task
