@@ -1,6 +1,6 @@
 #!/bin/bash
 
-base="${HOME}/Desktop/sqs/var/sqs"
+base="/users1/thl/.local/var/sqs"
 queue=""
 master="no"
 maxproc=1
@@ -94,7 +94,7 @@ fi
 # create queue name if not yet specified
 if [ -z ${queue} ] ; then
 	queue=${call##*/}
-	queue=${call%% *}
+	queue=${queue%% *}
 fi
 
 # build tasklist
@@ -119,10 +119,10 @@ fi
 
 echo "sqs: checking for queue ${base}/${queue}"
 if [ -e "${base}/${queue}" ] ; then
-	echo "I am a slave!"
+	echo "sqs: queue already exists!"
 
 else 
-	echo "I am the master"
+	echo "sqs: creating new queue!"
 	master="yes"
 	mkdir ${base}/${queue}
 
@@ -154,7 +154,6 @@ IFS=${separator}
 
 ./sqsunlock ${base}/${queue}
 
-#
 if [ "x${master}" = "xyes" ] ; then
 		nproc=0
 		
