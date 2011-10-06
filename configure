@@ -8,7 +8,7 @@ logfile=config.log
 
 ######################################################################
 #
-echo %%% Some common functions
+# echo %%% Some common functions
 #
 #_____________________________________________________________________
 message() {
@@ -66,7 +66,7 @@ checking_msg() {
 
 ######################################################################
 #
-echo %%% Help function
+# echo %%% Help function
 #
 usage() {
   progname=${0##*/}
@@ -86,7 +86,7 @@ EOF
 
 ######################################################################
 #
-echo %%% Some clean up
+# echo %%% Some clean up
 #
 trapcmd="rm -f Makefile.tmp sqsconfig.tmp"
 trap "${trapcmd}; exit 1" 1 2 3 15
@@ -97,21 +97,21 @@ rm -f $logfile
 
 ###################################################################
 #
-echo %%%  Parsing options
+# echo %%%  Parsing options
 #
 while [ ${1:q} ]; do
 		case "${1}" in
 				--prefix )
 						shift
-						prefix=${1}
+						prefix=${1%/}
 						;;
 				--bindir )
 						shift
-						bindir=${1}
+						bindir=${1%/}
 						;;
 				--vardir )
 						shift
-						vardir=${1}
+						vardir=${1%/}
 						;;
 				--no-create )
 						noact="yes"
@@ -140,7 +140,7 @@ done
 
 ###################################################################
 #
-echo %%% Some skeleton and config files
+# echo %%% Some skeleton and config files
 #
 MAKEIN=Makefile.in
 MAKEOUT=Makefile
@@ -149,7 +149,7 @@ CONFOUT=sqsconfig
 
 ######################################################################
 #
-echo %%% Testing the echo features
+# echo %%% Testing the echo features
 #
 if `(echo "testing\c"; echo 1,2,3) | grep c > /dev/null` ; then
   if `(echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn > /dev/null`; then
@@ -164,7 +164,7 @@ fi
 
 ######################################################################
 #
-echo %%% Copy skeletons to temporary files
+# echo %%% Copy skeletons to temporary files
 #
 if test "x${noact}" = "xno"; then
   cp -f ${MAKEIN} Makefile.tmp
@@ -173,7 +173,7 @@ fi
 
 ######################################################################
 #
-echo %%% Exit here if this is a dry run
+# echo %%% Exit here if this is a dry run
 #
 if test "x${noact}" = "xyes" ; then
   exit 0
@@ -181,7 +181,7 @@ fi
 
 ######################################################################
 #
-echo %%% Fleshin out paths
+# echo %%% Fleshin out paths
 #
 if test "x${prefix}" = "x";    then prefix=/usr/local; fi
 if test "x${bindir}" = "x";    then bindir=${prefix}/bin; fi
@@ -189,7 +189,7 @@ if test "x${vardir}" = "x";    then vardir=${prefix}/var/sqs; fi
 
 ######################################################################
 #
-echo %%% Writing files
+# echo %%% Writing files
 #
 #---------------------------------------------------------------------
 # config/Makefile.config
@@ -214,7 +214,7 @@ result "done"
 
 ######################################################################
 #
-echo %%% Final instructions
+# echo %%% Final instructions
 #
 # List the possible Makefiles
 #
