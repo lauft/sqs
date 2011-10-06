@@ -8,7 +8,11 @@ default:
 install:
 	@mkdir -p $(VARDIR)
 	@cp sqs        $(BINDIR)/.	
+	@cp sqsrunner  $(BINDIR)/.
 	@cp sqslock    $(BINDIR)/.
 	@cp sqsunlock  $(BINDIR)/.
-	@cp sqsrunner  $(BINDIR)/.
 	@cp sqsconfig  $(BINDIR)/.
+	@chmod 754 $(BINDIR)/sqs	
+	@chmod 754 $(BINDIR)/sqsrunner
+	@chmod 754 $(BINDIR)/sqslock
+	@chmod 754 $(BINDIR)/sqsunlock
