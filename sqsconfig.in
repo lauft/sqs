@@ -1,0 +1,8 @@
+################################################################################
+# configuration options for sqs
+#
+prefix=@prefix@
+vardir=@vardir@
+bindir=@bindir@
+
+### EOF

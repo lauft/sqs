@@ -1,0 +1,14 @@
+PREFIX=@prefix@
+BINDIR=@bindir@
+VARDIR=@vardir@
+
+default:
+	@echo "Run 'configure' and then 'make install'"
+
+install:
+	@mkdir -p $(VARDIR)
+	@mv sqs        $(BINDIR)/.	
+	@mv sqslock    $(BINDIR)/.
+	@mv sqsunlock  $(BINDIR)/.
+	@mv sqsrunner  $(BINDIR)/.
+	@mv sqsconfig  $(BINDIR)/.
