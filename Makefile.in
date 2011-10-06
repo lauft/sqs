@@ -16,3 +16,7 @@ install:
 	@chmod 754 $(BINDIR)/sqsrunner
 	@chmod 754 $(BINDIR)/sqslock
 	@chmod 754 $(BINDIR)/sqsunlock
+
+clean:
+	@rm -f Makefile
+	@rm -f sqsconfig
