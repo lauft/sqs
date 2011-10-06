@@ -1,0 +1,8 @@
+################################################################################
+# configuration options for sqs
+#
+prefix=/users1/thl/.local
+vardir=/users1/thl/.local/var/sqs
+bindir=/users1/thl/.local/bin
+
+### EOF

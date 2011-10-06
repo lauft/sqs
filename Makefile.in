@@ -7,8 +7,8 @@ default:
 
 install:
 	@mkdir -p $(VARDIR)
-	@mv sqs        $(BINDIR)/.	
-	@mv sqslock    $(BINDIR)/.
-	@mv sqsunlock  $(BINDIR)/.
-	@mv sqsrunner  $(BINDIR)/.
-	@mv sqsconfig  $(BINDIR)/.
+	@cp sqs        $(BINDIR)/.	
+	@cp sqslock    $(BINDIR)/.
+	@cp sqsunlock  $(BINDIR)/.
+	@cp sqsrunner  $(BINDIR)/.
+	@cp sqsconfig  $(BINDIR)/.

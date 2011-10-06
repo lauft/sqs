@@ -1,0 +1,46 @@
+#!/bin/bash
+
+#
+# Helper script for the SQS
+# Retrieves sucessively tasks from queue and waits for their completion
+#
+
+if [ $# -ne 1 ] ; then
+	echo "sqsrunner: wrong argument count!"
+	exit 1
+fi
+
+queue=$1
+
+if ! [ -e ${queue} ] ; then
+  echo "sqsrunner: queue '${queue}' does not exist!"
+	exit 2
+fi
+
+
+while [ true ] ; do
+  sqslock ${queue}
+
+  # retrieve task from queue
+  id=`ls ${queue} | grep -v "lockfile" | sort -n | head -n 1`
+
+  if [ "${id}" = "" ] ; then
+	  echo "sqsrunner: no more tasks in list"
+	  break
+	fi
+
+  task=`cat ${queue}/${id}`
+	rm -f ${queue}/${id}
+	echo "sqsrunner: executing task ${id}: '${task}'"
+	sqsunlock ${queue}
+		
+  # start task
+	${task} &
+
+  # wait for completion
+	wait
+
+done
+
+sqsunlock ${queue}
+
