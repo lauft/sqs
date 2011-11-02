@@ -12,7 +12,9 @@ install:
 	@cp sqslock    $(BINDIR)/.
 	@cp sqsunlock  $(BINDIR)/.
 	@cp sqsconfig  $(BINDIR)/.
+	@cp sqsadmin   $(BINDIR)/.
 	@chmod 754 $(BINDIR)/sqs	
 	@chmod 754 $(BINDIR)/sqsrunner
 	@chmod 754 $(BINDIR)/sqslock
 	@chmod 754 $(BINDIR)/sqsunlock
+	@chmod 754 $(BINDIR)/sqsadmin
