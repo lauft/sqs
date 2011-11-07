@@ -17,30 +17,37 @@ if ! [ -e ${queue} ] ; then
 	exit 2
 fi
 
+echo "idle" > ${queue}/proc/$$
 
 while [ true ] ; do
   sqslock ${queue}
-
-  # retrieve task from queue
-  id=`ls ${queue} | grep -v "lockfile" | sort -n | head -n 1`
-
+    
+  # retrieve first task from queue
+  id=`ls ${queue}/wait | grep -v "lockfile" | sort -n | head -n 1`
+    
   if [ "${id}" = "" ] ; then
-	  echo "sqsrunner: no more tasks in list"
-	  break
-	fi
+    echo "sqsrunner: no more tasks in list"
+    break
+  fi
 
-  task=`cat ${queue}/${id}`
-	rm -f ${queue}/${id}
-	echo "sqsrunner: executing task ${id}: '${task}'"
-	sqsunlock ${queue}
-		
+  task=`cat ${queue}/wait/${id}`
+  mv -f ${queue}/wait/${id} ${queue}/exec/
+  echo "sqsrunner: executing task ${id}: '${task}'"
+  echo "${id}" > ${queue}/proc/$$
+
+  sqsunlock ${queue}
+    
   # start task
-	${task} &
+  ${task} &
 
   # wait for completion
-	wait
+  wait
+
+  echo "idle" > ${queue}/proc/$$
+  rm -f ${queue}/exec/${id}
 
 done
 
 sqsunlock ${queue}
 
+rm ${queue}/proc/$$

@@ -37,83 +37,87 @@ exit
 
 # Parsing options
 while [ ${1:q} ]; do
-		case "${1}" in
-				--call )
-						shift
-						call=${1}
-						;;
-				--queue )
-						shift
-						queue=${1}
-						;;
-				--nproc )
-						shift
-						maxproc=${1}
-						;;
-				--logfile )
-						echo "logfile option not yet supported!"
-						;;
-				--dry-run )
-						dryrun="yes"
-						;;
-				--quiet )
-						echo "quiet option not yet supported!"
-						#quiet="yes"
-						;;
-				-h )
-						usage
-						exit
-						;;
-				--help )
-						usage
-						exit
-						;;
-				-* )
-						echo "unknown option $1"
-						usage
-						exit
-						;;
-				* )
-						targets="${targets} ${1}"
-						;;
-		esac
-		shift		
+  case "${1}" in
+    --call )
+      shift
+      call=${1}
+      ;;
+    --queue )
+      shift
+      queue=${1}
+      ;;
+    --nproc )
+      shift
+      maxproc=${1}
+      ;;
+    --logfile )
+      echo "logfile option not yet supported!"
+      ;;
+    --dry-run )
+      dryrun="yes"
+      ;;
+    --quiet )
+      echo "quiet option not yet supported!"
+      #quiet="yes"
+      ;;
+    -h )
+      usage
+      exit
+      ;;
+    --help )
+      usage
+      exit
+      ;;
+    -* )
+      echo "unknown option $1"
+      usage
+      exit
+      ;;
+    * )
+      targets="${targets} ${1}"
+      ;;
+  esac
+  shift    
 done
 
 ################################################################################
 # script entry point
 #
 if [ -z "${call}" ] ; then
-	echo "sqs: no call specified!"
-	usage
+  echo "sqs: no call specified!"
+  usage
   exit 1
 fi
 
 if ! which ${call%% *} >/dev/null 2>&1 ; then
-	echo "sqs: program call '${call%% *}' is not accessible!"
-	exit 2
+  echo "sqs: program call '${call%% *}' is not accessible!"
+  exit 2
 fi
 
 # create queue name if not yet specified
 if [ -z ${queue} ] ; then
-	queue=${call##*/}
-	queue=${queue%% *}
+  queue=${call##*/}
+  queue=${queue%% *}
 fi
 
 # build tasklist
-for target in ${targets} ; do
-		tasklist="${tasklist};${call} ${target}"
-done
+if [ "x${targets}" = "x" ] ; then
+  tasklist="${call}"
+else
+  for target in ${targets} ; do
+    tasklist="${tasklist};${call} ${target}"
+  done
+fi
 
 tasklist=${tasklist#;}
 
 # if dry run, stop here
 if [ "x${dryrun}" = "xyes" ] ; then
-		echo "call : ${call}"
-		echo "queue: ${queue}"
-		echo "runs : ${maxproc}"
-		echo "tasks: ${tasklist}" | sed -e "s|;|\n       |g"
-		exit 0
+  echo "call : ${call}"
+  echo "queue: ${queue}"
+  echo "runs : ${maxproc}"
+  echo "tasks: ${tasklist}" | sed -e "s|;|\n       |g"
+  exit 0
 fi
 
 # TODO: add traps
@@ -122,24 +126,27 @@ sqslock ${vardir}
 
 echo "sqs: checking for queue ${vardir}/${queue}"
 if [ -e "${vardir}/${queue}" ] ; then
-	echo "sqs: queue already exists!"
-
+  echo "sqs: queue already exists!"
+  
 else 
-	echo "sqs: creating new queue!"
-	master="yes"
-	mkdir ${vardir}/${queue}
-
+    echo "sqs: creating new queue!"
+    master="yes"
+    mkdir ${vardir}/${queue}
+    mkdir ${vardir}/${queue}/wait
+    mkdir ${vardir}/${queue}/exec
+    mkdir ${vardir}/${queue}/proc
+    echo ${maxproc} > ${vardir}/${queue}/proc/nproc
 fi
 
 sqslock ${vardir}/${queue}
 sqsunlock ${vardir}
 
-i=`ls ${vardir}/${queue} | grep -v "lockfile" | sort -n | tail -n 1`
+i=`ls ${vardir}/${queue}/wait | grep -v "lockfile" | sort -n | tail -n 1`
 
 if [ "${i}" = "" ] ; then
-	i=-1
+  i=-1
 else
-	echo "sqs: last task in queue: '${i}'"
+  echo "sqs: last task in queue: '${i}'"
 fi
 
 ((i++))
@@ -148,9 +155,9 @@ separator=$IFS
 IFS=";"
 
 for task in ${tasklist} ; do
-	echo "sqs: add task ${i} '${task}'"
-	echo ${task} > ${vardir}/${queue}/${i}
-	((i++))
+    echo "sqs: add task ${i} '${task}'"
+    echo ${task} > ${vardir}/${queue}/wait/${i}
+    ((i++))
 done
 
 IFS=${separator}
@@ -158,24 +165,24 @@ IFS=${separator}
 sqsunlock ${vardir}/${queue}
 
 if [ "x${master}" = "xyes" ] ; then
-		nproc=0
-		
-		echo "sqs: starting processes"
-		while [ ${nproc} -lt ${maxproc} ] ; do
-				sqsrunner ${vardir}/${queue} &
-				((nproc++))
-		done
-
-		wait
-
-		sqslock ${vardir}
-		sqslock ${vardir}/${queue}
-
-		# TODO: check whether queue is empty
-		
-		echo "sqs: closing queue '${vardir}/${queue}'"
-		rm -r ${vardir}/${queue}
-		sqsunlock ${vardir}
+  nproc=0
+  
+  echo "sqs: starting processes"
+  while [ ${nproc} -lt ${maxproc} ] ; do
+    sqsrunner ${vardir}/${queue} &
+    ((nproc++))
+  done
+  
+  wait
+  
+  sqslock ${vardir}
+  sqslock ${vardir}/${queue}
+  
+  # TODO: check whether queue is empty
+  
+  echo "sqs: closing queue '${vardir}/${queue}'"
+  rm -r ${vardir}/${queue}
+  sqsunlock ${vardir}
 fi
 
 echo "sqs: finished!"
