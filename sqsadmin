@@ -100,6 +100,11 @@ sqs_list_task() {
   local queue=${1}
   local task=${2}
   
+  if ! [ -e ${vardir}/${queue} ] ; then
+      echo "No queue '${queue}' in system"
+      return
+  fi
+  
   case "${task}" in
     "first")
       first=`ls ${vardir}/${queue}/wait/ | sort -n | head -n 1`
