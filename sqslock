@@ -19,7 +19,7 @@ while true ; do
 	break;
   fi
   if [ "x${verbose}" = "xyes" ] ; then
-	echo -en "sqslock: waiting for lock on '${dir}'...\r"
+    echo -en "sqslock: waiting for lock on '${dir}'...\r"
   fi
   sleep 3
 done
