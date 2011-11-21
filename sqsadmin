@@ -25,6 +25,12 @@ COMMANDS
   remove QUEUE all    Remove all tasks from queue QUEUE
   remove QUEUE first  Remove first task from queue QUEUE
   remove QUEUE last   Remove last task from queue QUEUE
+
+  kill QUEUE TASK     Kill processing task number TASK from queue QUEUE
+  kill QUEUE all      Kill all processing tasks from queue QUEUE
+
+  renice QUEUE TASK   Set nice level for processing TASK in queue QUEUE
+  renice QUEUE        Set nice level for queue QUEUE
 EOF
 }
 
@@ -67,8 +73,8 @@ sqs_list_queue() {
 	  
       for que in ${list} ; do
         ecnt=`ls ${vardir}/${que}/exec | wc -w`
-	pcnt=`ls ${vardir}/${que}/proc | grep -v nproc | wc -w`
-	mprc=`cat ${vardir}/${que}/proc/nproc`
+	pcnt=`ls ${vardir}/${que}/proc | wc -w`
+	mprc=`cat ${vardir}/${que}/info/nproc`
 	wcnt=`ls ${vardir}/${que}/wait | wc -w`
 	echo "${que}: exec ${ecnt} wait ${wcnt} proc ${pcnt}/${mprc}"
       done
@@ -81,8 +87,8 @@ sqs_list_queue() {
       
       ecnt=`ls ${vardir}/${queue}/exec | wc -l`
       wcnt=`ls ${vardir}/${queue}/wait | wc -l`
-      pcnt=`ls ${vardir}/${queue}/proc | grep -v nproc | wc -w`
-      mprc=`cat ${vardir}/${queue}/proc/nproc`
+      pcnt=`ls ${vardir}/${queue}/proc | wc -w`
+      mprc=`cat ${vardir}/${queue}/info/nproc`
       ((tcnt = ecnt+wcnt))
       
       echo "${pcnt}/${mprc} processes"
@@ -134,13 +140,40 @@ sqs_list_task() {
 	cat ${vardir}/${queue}/wait/${tsk}
       done
       ;;
+    "proc")
+      list=`ls ${vardir}/${queue}/proc | sort -n`
+      
+      echo "Listing all processes"
+      for prc in ${list} ; do
+	echo -n "${prc}: "
+	cat ${vardir}/${queue}/proc/${prc}
+      done     
+      ;;
+    "exec")
+      list=`ls ${vardir}/${queue}/exec | sort -n`
+      
+      echo "Currently executing:"
+      for tsk in ${list} ; do
+	echo -n "${tsk}: "
+	cat ${vardir}/${queue}/exec/${tsk}
+      done
+      ;;
+    "wait")
+      list=`ls ${vardir}/${queue}/wait | sort -n`
+      
+      echo "Waiting tasks:"
+      for tsk in ${list} ; do
+	echo -n "${tsk}: "
+	cat ${vardir}/${queue}/wait/${tsk}
+      done
+      ;;
     [0-9]*)
       if [ -e ${vardir}/${queue}/wait/${task} ] ; then
         echo -n "${task}: "
         cat ${vardir}/${queue}/wait/${task}
       elif [ -e ${vardir}/${queue}/exec/${task} ] ; then
         echo -n "${task}: "
-        cat ${vardir}/${queue}/wait/${task}
+        cat ${vardir}/${queue}/exec/${task}
 	echo "(running)"
       else
 	echo "there is no task '${task}' in queue '${queue}'"
