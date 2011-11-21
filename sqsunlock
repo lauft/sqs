@@ -6,13 +6,15 @@
 #
 
 if [ $# -ne 1 ] ; then
-	echo "sqslock: wrong argument count!"
-	exit 1
+  echo "sqslock: wrong argument count!"
+  exit 1
 fi
 
 dir=$1
 
-echo "sqsunlock: unlocking ${dir}"
+if [ "x${verbose}" = "xyes" ] ; then
+  echo "sqsunlock: unlocking ${dir}"
+fi
 rm -rf ${dir}/lockfile
 
 

@@ -6,22 +6,26 @@
 #
 
 if [ $# -ne 1 ] ; then
-	echo "sqslock: wrong argument count!"
-	exit 1
+  echo "sqslock: wrong argument count! ($*)"
+  exit 1
 fi
 
 dir=$1
-	
+
 while true ; do
-	mkdir "${dir}/lockfile" 2>/dev/null
-	
-	if [ $? -eq 0 ] ; then
-	  break;
-	fi
+  mkdir "${dir}/lockfile" 2>/dev/null
+    
+  if [ $? -eq 0 ] ; then
+	break;
+  fi
+  if [ "x${verbose}" = "xyes" ] ; then
 	echo -en "sqslock: waiting for lock on '${dir}'...\r"
-	sleep 3
+  fi
+  sleep 3
 done
 
-echo "sqslock: locking ${dir}"
+if [ "x${verbose}" = "xyes" ] ; then
+  echo "sqslock: locking ${dir}"
+fi
 
 exit 0
