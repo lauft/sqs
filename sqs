@@ -1,7 +1,6 @@
 #!/bin/bash
 
-dir=${0%/*}
-source ${dir}/sqsconfig
+source sqsconfig
 
 queue=""
 master="no"
@@ -10,7 +9,7 @@ dryrun="no"
 targets=""
 call=""
 nice="0"
-export verbose="no"
+verbose="no"
 
 #_______________________________________________________________________________
 usage(){
@@ -34,7 +33,7 @@ Options:
 
   --dry-run  do not process anything, just print what would happen
 
-  --quiet    suppress informational output
+  --verbose  give informational output
 EOF
 exit
 }
@@ -64,9 +63,8 @@ while [ ${1:q} ]; do
     --dry-run )
       dryrun="yes"
       ;;
-    --quiet )
-      echo "quiet option not yet supported!"
-      #quiet="yes"
+    --verbose )
+      verbose="yes"
       ;;
     -h )
       usage
@@ -77,7 +75,7 @@ while [ ${1:q} ]; do
       exit
       ;;
     -* )
-      echo "unknown option $1"
+      echo "unknown option ${1}"
       usage
       exit
       ;;
@@ -101,6 +99,9 @@ if ! which ${call%% *} >/dev/null 2>&1 ; then
   echo "sqs: program call '${call%% *}' is not accessible!"
   exit 2
 fi
+
+# export verbosity
+export verbose
 
 # create queue name if not yet specified
 if [ -z ${queue} ] ; then
@@ -132,21 +133,28 @@ fi
 
 sqslock ${vardir}
 
-echo "sqs: checking for queue ${vardir}/${queue}"
+if [ "x${verbose}" = "xyes" ] ; then
+  echo "sqs: checking for queue ${vardir}/${queue}..."
+fi
+
 if [ -e "${vardir}/${queue}" ] ; then
-  echo "sqs: queue already exists!"
-  
+  if [ "x${verbose}" = "xyes" ] ; then
+    echo "sqs: queue already exists!"
+  fi
 else 
-    echo "sqs: creating new queue!"
-    master="yes"
-    mkdir ${vardir}/${queue}
-    mkdir ${vardir}/${queue}/wait
-    mkdir ${vardir}/${queue}/exec
-    mkdir ${vardir}/${queue}/proc
-    mkdir ${vardir}/${queue}/info
-    echo ${maxproc} > ${vardir}/${queue}/info/nproc
-    echo "-1"       > ${vardir}/${queue}/info/ntask
-    echo ${nice}    > ${vardir}/${queue}/info/nice
+  if [ "x${verbose}" = "xyes" ] ; then
+    echo "sqs: queue does not exist, creating new queue!"
+  fi
+  
+  #master="yes"
+  mkdir ${vardir}/${queue}
+  mkdir ${vardir}/${queue}/wait
+  mkdir ${vardir}/${queue}/exec
+  mkdir ${vardir}/${queue}/proc
+  mkdir ${vardir}/${queue}/info
+  echo ${maxproc} > ${vardir}/${queue}/info/nproc
+  echo "-1"       > ${vardir}/${queue}/info/ntask
+  echo ${nice}    > ${vardir}/${queue}/info/nice
 fi
 
 sqslock ${vardir}/${queue}
@@ -156,11 +164,13 @@ separator=$IFS
 IFS=";"
 
 for task in ${tasklist} ; do
-    i=`cat ${vardir}/${queue}/info/ntask`
-    ((i++))
+  i=`cat ${vardir}/${queue}/info/ntask`
+  ((i++))
+  if [ "x${verbose}" = "xyes" ] ; then
     echo "sqs: add task ${i} '${task}'"
-    echo ${task} > ${vardir}/${queue}/wait/${i}
-    echo ${i}    > ${vardir}/${queue}/info/ntask
+  fi
+  echo ${task} > ${vardir}/${queue}/wait/${i}
+  echo ${i}    > ${vardir}/${queue}/info/ntask
 done
 
 IFS=${separator}
@@ -170,4 +180,6 @@ sqsunlock ${vardir}/${queue}
 # seed sqsrunner
 sqsrunner ${vardir}/${queue} &
 
-echo "sqs: finished!"
+if [ "x${verbose}" = "xyes" ] ; then
+  echo "sqs: finished!"
+fi
