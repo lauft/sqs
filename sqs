@@ -9,6 +9,8 @@ maxproc=1
 dryrun="no"
 targets=""
 call=""
+nice="0"
+export verbose="no"
 
 #_______________________________________________________________________________
 usage(){
@@ -25,6 +27,8 @@ Options:
   --queue    specify the name of the queue
   
   --nproc    maximum number of parallel processes (only if master)
+
+  --nice     set nice level for queue
 
   --logfile  redirect output of each process to a logfile '<target>.log'
 
@@ -49,6 +53,10 @@ while [ ${1:q} ]; do
     --nproc )
       shift
       maxproc=${1}
+      ;;
+    --nice )
+      shift
+      nice=${1}
       ;;
     --logfile )
       echo "logfile option not yet supported!"
@@ -135,54 +143,31 @@ else
     mkdir ${vardir}/${queue}/wait
     mkdir ${vardir}/${queue}/exec
     mkdir ${vardir}/${queue}/proc
-    echo ${maxproc} > ${vardir}/${queue}/proc/nproc
+    mkdir ${vardir}/${queue}/info
+    echo ${maxproc} > ${vardir}/${queue}/info/nproc
+    echo "-1"       > ${vardir}/${queue}/info/ntask
+    echo ${nice}    > ${vardir}/${queue}/info/nice
 fi
 
 sqslock ${vardir}/${queue}
 sqsunlock ${vardir}
 
-i=`ls ${vardir}/${queue}/wait | grep -v "lockfile" | sort -n | tail -n 1`
-
-if [ "${i}" = "" ] ; then
-  i=-1
-else
-  echo "sqs: last task in queue: '${i}'"
-fi
-
-((i++))
-
 separator=$IFS
 IFS=";"
 
 for task in ${tasklist} ; do
+    i=`cat ${vardir}/${queue}/info/ntask`
+    ((i++))
     echo "sqs: add task ${i} '${task}'"
     echo ${task} > ${vardir}/${queue}/wait/${i}
-    ((i++))
+    echo ${i}    > ${vardir}/${queue}/info/ntask
 done
 
 IFS=${separator}
 
 sqsunlock ${vardir}/${queue}
 
-if [ "x${master}" = "xyes" ] ; then
-  nproc=0
-  
-  echo "sqs: starting processes"
-  while [ ${nproc} -lt ${maxproc} ] ; do
-    sqsrunner ${vardir}/${queue} &
-    ((nproc++))
-  done
-  
-  wait
-  
-  sqslock ${vardir}
-  sqslock ${vardir}/${queue}
-  
-  # TODO: check whether queue is empty
-  
-  echo "sqs: closing queue '${vardir}/${queue}'"
-  rm -r ${vardir}/${queue}
-  sqsunlock ${vardir}
-fi
+# seed sqsrunner
+sqsrunner ${vardir}/${queue} &
 
 echo "sqs: finished!"
