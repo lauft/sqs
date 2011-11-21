@@ -6,7 +6,7 @@
 #
 
 if [ $# -ne 1 ] ; then
-  echo "sqslock: wrong argument count!"
+  echo "sqslock: wrong argument count! ($*)"
   exit 1
 fi
 
