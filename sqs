@@ -4,7 +4,7 @@ source sqsconfig
 
 queue=""
 master="no"
-maxproc=1
+maxproc=0
 dryrun="no"
 targets=""
 call=""
@@ -141,11 +141,17 @@ if [ -e "${vardir}/${queue}" ] ; then
   if [ "x${verbose}" = "xyes" ] ; then
     echo "sqs: queue already exists!"
   fi
+  if [ ${maxproc} -gt 0 ] ; then
+    echo ${maxproc} > ${vardir}/${queue}/info/nproc
+  fi
+  echo ${nice}    > ${vardir}/${queue}/info/nice
 else 
   if [ "x${verbose}" = "xyes" ] ; then
     echo "sqs: queue does not exist, creating new queue!"
   fi
-  
+  if [ ${maxproc} -eq 0 ] ; then
+    maxproc=1
+  fi
   #master="yes"
   mkdir ${vardir}/${queue}
   mkdir ${vardir}/${queue}/wait
@@ -166,9 +172,7 @@ IFS=";"
 for task in ${tasklist} ; do
   i=`cat ${vardir}/${queue}/info/ntask`
   ((i++))
-  if [ "x${verbose}" = "xyes" ] ; then
-    echo "sqs: add task ${i} '${task}'"
-  fi
+  echo "sqs: add task ${i} '${task}'"
   echo ${task} > ${vardir}/${queue}/wait/${i}
   echo ${i}    > ${vardir}/${queue}/info/ntask
 done
