@@ -3,29 +3,34 @@
 #
 # Helper script for the SQS
 # Locks directories to prevent race conditions
+# Locking requires a tag (which can identify the locking process)
 #
 
-if [ $# -ne 1 ] ; then
+if [ $# -ne 2 ] ; then
   echo "sqslock: wrong argument count! ($*)"
   exit 1
 fi
 
-dir=$1
+dir=${1}
+tag=${2}
 
 while true ; do
   mkdir "${dir}/lockfile" 2>/dev/null
-    
   if [ $? -eq 0 ] ; then
-	break;
+    break;
   fi
+
   if [ "x${verbose}" = "xyes" ] ; then
     echo -en "sqslock: waiting for lock on '${dir}'...\r"
   fi
-  sleep 3
+
+  sleep 1
 done
 
 if [ "x${verbose}" = "xyes" ] ; then
-  echo "sqslock: locking ${dir}"
+  echo "sqslock: locking '${dir}' with '${tag}'"
 fi
+
+echo "$USER" > ${dir}/lockfile/${tag}
 
 exit 0

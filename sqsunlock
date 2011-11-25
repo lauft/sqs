@@ -3,18 +3,27 @@
 #
 # Helper script for the SQS
 # Unlocks directories
+# Unlocking requires a matching tag.
 #
 
-if [ $# -ne 1 ] ; then
+if [ $# -ne 2 ] ; then
   echo "sqslock: wrong argument count! ($*)"
   exit 1
 fi
 
-dir=$1
+dir=${1}
+tag=${2}
+
+if ! [ -e ${dir}/lockfile/${tag} ] ; then
+  # non-matching tag file
+  echo "sqsunlock: Error, cannot unlock dir '${dir}' with tag '${tag}'"
+  exit 2
+fi
 
 if [ "x${verbose}" = "xyes" ] ; then
-  echo "sqsunlock: unlocking ${dir}"
-fi
+  echo "sqsunlock: unlocking '${dir}'"
+fi 
+
 rm -rf ${dir}/lockfile
 
-
+exit 0
