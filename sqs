@@ -100,6 +100,9 @@ if ! which ${call%% *} >/dev/null 2>&1 ; then
   exit 2
 fi
 
+# determine hostname
+host=`hostname`
+
 # export verbosity
 export verbose
 
@@ -158,9 +161,10 @@ else
   mkdir ${vardir}/${queue}/exec
   mkdir ${vardir}/${queue}/proc
   mkdir ${vardir}/${queue}/info
-  echo ${maxproc} > ${vardir}/${queue}/info/nproc
-  echo "-1"       > ${vardir}/${queue}/info/ntask
-  echo ${nice}    > ${vardir}/${queue}/info/nice
+  echo "${host}:${maxproc}" > ${vardir}/${queue}/info/nproc
+  echo "${host}:${nice}"    > ${vardir}/${queue}/info/nice
+  echo "-1"                 > ${vardir}/${queue}/info/ntask
+
 fi
 
 sqslock ${vardir}/${queue}
@@ -182,6 +186,10 @@ IFS=${separator}
 sqsunlock ${vardir}/${queue}
 
 # seed sqsrunner
+if [ "x${verbose}" = "xyes" ] ; then
+  echo "sqs: seeding runners on '${host}'!"
+fi
+
 sqsrunner ${vardir}/${queue} &
 
 if [ "x${verbose}" = "xyes" ] ; then
