@@ -1,17 +1,18 @@
 #!/bin/bash
 
-dir=${0%/*}
-source ${dir}/sqsconfig
+source sqsconfig
 
 queue=""
 master="no"
-maxproc=1
 dryrun="no"
 targets=""
 call=""
+nice="0"
+verbose="no"
+host=$(hostname)
 
 #_______________________________________________________________________________
-usage(){
+usage() {
 PROGNAME=${0##*/}
 cat << EOF
 
@@ -24,158 +25,281 @@ Options:
 
   --queue    specify the name of the queue
   
-  --nproc    maximum number of parallel processes (only if master)
+  --host     specify host [hostname:processes:nicelevel]
+
+  --nproc    maximum number of parallel processes for current host
+
+  --nice     set nice level for queue for current host
 
   --logfile  redirect output of each process to a logfile '<target>.log'
 
   --dry-run  do not process anything, just print what would happen
 
-  --quiet    suppress informational output
+  --verbose  give informational output
 EOF
 exit
 }
 
+#_______________________________________________________________________________
+add_to_hostlist() {
+  # add host specification to hostlist
+  # 1 = hostname
+  # 2 = maximum number of processes
+  # 3 = nicelevel
+  #
+  if [ $# -ne 3 ] ; then
+    echo "sqs[add_to_hostlist]: wrong argument count"
+    return 1
+  fi
+  
+  # check host
+  host ${1} >/dev/null 2>&1 || return 12
+
+  # check process limit
+  [[ ${2} =~ [[:digit:]] ]] || return 13
+
+  # check nice level
+  [[ ${3} =~ [[:digit:]] ]] || return 14
+
+  # delete any previous occurrence of this host
+  hostlist=`echo ${hostlist} | sed "s|${1}:.*;||g"`  
+  # add new host specification
+  hostlist="${1}:${2}:${3};${hostlist}"
+
+  return 0
+} # add_to_hostlist
+
 # Parsing options
 while [ ${1:q} ]; do
-		case "${1}" in
-				--call )
-						shift
-						call=${1}
-						;;
-				--queue )
-						shift
-						queue=${1}
-						;;
-				--nproc )
-						shift
-						maxproc=${1}
-						;;
-				--logfile )
-						echo "logfile option not yet supported!"
-						;;
-				--dry-run )
-						dryrun="yes"
-						;;
-				--quiet )
-						echo "quiet option not yet supported!"
-						#quiet="yes"
-						;;
-				-h )
-						usage
-						exit
-						;;
-				--help )
-						usage
-						exit
-						;;
-				-* )
-						echo "unknown option $1"
-						usage
-						exit
-						;;
-				* )
-						targets="${targets} ${1}"
-						;;
-		esac
-		shift		
+  case "${1}" in
+    --call )
+      shift
+      call=${1}
+      ;;
+    --queue )
+      shift
+      queue=${1}
+      ;;
+    --nproc )
+      shift
+      m=${host}
+      p=${1}
+      n=0
+      add_to_hostlist ${m} ${p} ${n} || { usage ; exit $? ; }
+      ;;
+    --nice )
+      shift
+      m=${host}
+      p=0
+      n=${1}
+      add_to_hostlist ${m} ${p} ${n} || { usage ; exit $? ; }
+      ;;
+    --host )
+      shift
+      case "${1}" in
+	*:[[:digit:]]*:[[:digit:]]*)
+	  m=${1%%:*}
+	  p=${1#*:}; p=${p%:*}
+	  n=${1##*:}
+	  ;;
+        *:[[:digit:]]*)
+          m=${1%:*}
+	  p=${1#*:}
+          n=0
+	  ;;
+	[[:digit:]]*:[[:digit:]]*)
+	  m=${host}
+          p=${1%:*}
+          n=${1#*:}
+          ;;
+	[[:digit:]]*)
+	  m=${host}
+	  p=${1}
+	  n=0
+	  ;;
+	*)
+	  m=${1}
+	  p=0
+	  n=0
+	  ;;
+      esac
+      add_to_hostlist ${m} ${p} ${n}
+      ;;
+    --logfile )
+      echo "logfile option not yet supported!"
+      ;;
+    --dry-run )
+      dryrun="yes"
+      ;;
+    --verbose )
+      verbose="yes"
+      ;;
+    -h )
+      usage
+      exit
+      ;;
+    --help )
+      usage
+      exit
+      ;;
+    -* )
+      echo "unknown option ${1}"
+      usage
+      exit
+      ;;
+    * )
+      targets="${targets} ${1}"
+      ;;
+  esac
+  shift    
 done
 
 ################################################################################
 # script entry point
 #
 if [ -z "${call}" ] ; then
-	echo "sqs: no call specified!"
-	usage
+  echo "sqs: no call specified!"
+  usage
   exit 1
 fi
 
 if ! which ${call%% *} >/dev/null 2>&1 ; then
-	echo "sqs: program call '${call%% *}' is not accessible!"
-	exit 2
+  echo "sqs: program call '${call%% *}' is not accessible!"
+  exit 2
 fi
+
+# export verbosity
+export verbose
+
+# default for hostlist
+if [ "x${hostlist}" = "x" ] ; then
+  hostlist="${host}:0:0"
+fi
+
+# generate lock key
+key="${host}.$$"
 
 # create queue name if not yet specified
 if [ -z ${queue} ] ; then
-	queue=${call##*/}
-	queue=${queue%% *}
+  queue=${call##*/}
+  queue=${queue%% *}
 fi
 
 # build tasklist
-for target in ${targets} ; do
-		tasklist="${tasklist};${call} ${target}"
-done
+if [ "x${targets}" = "x" ] ; then
+  tasklist="${call}"
+else
+  for target in ${targets} ; do
+    tasklist="${tasklist};${call} ${target}"
+  done
+fi
 
 tasklist=${tasklist#;}
+hostlist=${hostlist%;}
 
 # if dry run, stop here
 if [ "x${dryrun}" = "xyes" ] ; then
-		echo "call : ${call}"
-		echo "queue: ${queue}"
-		echo "runs : ${maxproc}"
-		echo "tasks: ${tasklist}" | sed -e "s|;|\n       |g"
-		exit 0
+  echo "call : ${call}"
+  echo "queue: ${queue}"
+  echo "hosts: ${hostlist}" | sed -e "s|;|\n       |g"
+  echo "tasks: ${tasklist}" | sed -e "s|;|\n       |g"
+  exit 0
 fi
 
 # TODO: add traps
 
-sqslock ${vardir}
+sqslock ${vardir} ${key} || exit $?
 
-echo "sqs: checking for queue ${vardir}/${queue}"
+if [ "x${verbose}" = "xyes" ] ; then
+  echo "sqs: checking for queue ${vardir}/${queue}..."
+fi
+
+#separator=$IFS ; IFS=";"
+
 if [ -e "${vardir}/${queue}" ] ; then
-	echo "sqs: queue already exists!"
+  if [ "x${verbose}" = "xyes" ] ; then
+    echo "sqs: queue already exists!"
+  fi
 
+  separator=${IFS} ; IFS=";"
+
+  for host in ${hostlist} ; do
+    m=${host%%:*}
+    p=${host#*:}; p=${p%:*}
+    n=${host##*:}
+      
+    # TODO overwrite maxproc and nice for machine specifically!!!
+    # NEED default value for nice level as for maxproc!!!!
+    if [ ${maxproc} -gt 0 ] ; then
+      echo "${host}:${maxproc}" > ${vardir}/${queue}/info/nproc
+    fi
+    echo "${host}:${nice}" > ${vardir}/${queue}/info/nice
+  done
+  
+  IFS=${separator}
 else 
-	echo "sqs: creating new queue!"
-	master="yes"
-	mkdir ${vardir}/${queue}
+  if [ "x${verbose}" = "xyes" ] ; then
+    echo "sqs: queue does not exist, creating new queue!"
+  fi
+  # setting default value for number of processes where neccessary
+  hostlist=`echo ${hostlist} | sed "s|:0:|:1:|g"`
+  
+  mkdir ${vardir}/${queue}
+  mkdir ${vardir}/${queue}/wait
+  mkdir ${vardir}/${queue}/exec
+  mkdir ${vardir}/${queue}/proc
+  mkdir ${vardir}/${queue}/info
+  echo "-1" > ${vardir}/${queue}/info/ntask
 
+  separator=${IFS} ; IFS=";"
+
+  for host in ${hostlist} ; do
+    m=${host%%:*}
+    p=${host#*:}; p=${p%:*}
+    n=${host##*:}
+
+    echo "${m}:${p}" >> ${vardir}/${queue}/info/nproc
+    echo "${m}:${n}" >> ${vardir}/${queue}/info/nice
+  done
+
+  IFS=${separator}
 fi
 
-sqslock ${vardir}/${queue}
-sqsunlock ${vardir}
+sqslock ${vardir}/${queue} ${key} || exit $?
+sqsunlock ${vardir} ${key} || exit $?
 
-i=`ls ${vardir}/${queue} | grep -v "lockfile" | sort -n | tail -n 1`
-
-if [ "${i}" = "" ] ; then
-	i=-1
-else
-	echo "sqs: last task in queue: '${i}'"
-fi
-
-((i++))
-
-separator=$IFS
-IFS=";"
+separator=$IFS ; IFS=";"
 
 for task in ${tasklist} ; do
-	echo "sqs: add task ${i} '${task}'"
-	echo ${task} > ${vardir}/${queue}/${i}
-	((i++))
+  i=`cat ${vardir}/${queue}/info/ntask`
+  ((i++))
+  echo "sqs: add task ${i} '${task}'"
+  echo ${task} > ${vardir}/${queue}/wait/${i}
+  echo ${i}    > ${vardir}/${queue}/info/ntask
 done
 
 IFS=${separator}
 
-sqsunlock ${vardir}/${queue}
+sqsunlock ${vardir}/${queue} ${key} || exit $?
 
-if [ "x${master}" = "xyes" ] ; then
-		nproc=0
-		
-		echo "sqs: starting processes"
-		while [ ${nproc} -lt ${maxproc} ] ; do
-				sqsrunner ${vardir}/${queue} &
-				((nproc++))
-		done
+separator=$IFS ; IFS=";"
 
-		wait
+for host in ${hostlist} ; do
+  host=${host%%:*}
+  # seed sqsrunner
+  if [ "x${verbose}" = "xyes" ] ; then
+    echo "sqs: seeding runners on '${host}'!"
+  fi
 
-		sqslock ${vardir}
-		sqslock ${vardir}/${queue}
+  if [ "${host}" = "$(hostname)" ] ; then
+    sqsrunner ${vardir}/${queue} &
+  else 
+    ssh ${host} sqsrunner ${vardir}/${queue} &
+  fi
+done
 
-		# TODO: check whether queue is empty
-		
-		echo "sqs: closing queue '${vardir}/${queue}'"
-		rm -r ${vardir}/${queue}
-		sqsunlock ${vardir}
+IFS=${separator}
+
+if [ "x${verbose}" = "xyes" ] ; then
+  echo "sqs: finished!"
 fi
-
-echo "sqs: finished!"

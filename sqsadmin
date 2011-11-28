@@ -1,0 +1,333 @@
+#!/bin/bash
+
+#
+# Helper script for the SQS
+# Administration of queues
+# 
+
+progdir=${0%/*}
+source ${progdir}/sqsconfig
+
+#_______________________________________________________________________________
+print_usage() {
+  # print usage information
+  #
+  cat <<EOF
+USAGE
+  ${0##*/} <command> [<parameter>]
+
+COMMANDS
+  list                Show list of queues
+  list QUEUE          Show list of tasks in queue QUEUE.
+  list QUEUE TASK     Show task TASK
+
+  remove QUEUE TASK   Remove task number TASK from queue QUEUE.
+  remove QUEUE all    Remove all tasks from queue QUEUE
+  remove QUEUE first  Remove first task from queue QUEUE
+  remove QUEUE last   Remove last task from queue QUEUE
+
+  kill QUEUE TASK     Kill processing task number TASK from queue QUEUE
+  kill QUEUE all      Kill all processing tasks from queue QUEUE
+
+  renice QUEUE TASK   Set nice level for processing TASK in queue QUEUE
+  renice QUEUE        Set nice level for queue QUEUE
+EOF
+}
+
+#_______________________________________________________________________________
+sqs_list() {
+  # helper function for listing
+  # list all queues, if no queue specified
+  # 
+  local queue=${1}
+  local task=${2}
+    
+  if [ "x${queue}" = "x" ] ; then
+      queue="all"
+  fi
+
+  if [ "x${task}" = "x" ] ; then
+      sqs_list_queue ${queue}
+  else
+      sqs_list_task ${queue} ${task}
+  fi
+} # sqs_list
+
+#_______________________________________________________________________________
+sqs_list_queue() {
+  # show overview of queue(s)
+  #
+  local queue=${1}
+
+  case "${queue}" in
+    "all")
+      list=`ls ${vardir}`
+      cnt=`echo ${list} | wc -w`
+      
+      if [ ${cnt} -eq 0 ] ; then
+	echo "no queues in system."
+	return
+      fi
+      
+      echo "${cnt} queue(s) in total"
+	  
+      for que in ${list} ; do
+        ecnt=`ls ${vardir}/${que}/exec | wc -w`
+	pcnt=`ls ${vardir}/${que}/proc | wc -w`
+	mprc=`cat ${vardir}/${que}/info/nproc`
+	wcnt=`ls ${vardir}/${que}/wait | wc -w`
+	echo "${que}: exec ${ecnt} wait ${wcnt} proc ${pcnt}/${mprc}"
+      done
+      ;;
+    *)
+      if ! [ -e "${vardir}/${queue}" ] ; then
+	echo "sqsadmin: Error, queue '${queue}' does not exist"
+	return
+      fi
+      
+      ecnt=`ls ${vardir}/${queue}/exec | wc -l`
+      wcnt=`ls ${vardir}/${queue}/wait | wc -l`
+      pcnt=`ls ${vardir}/${queue}/proc | wc -w`
+      mprc=`cat ${vardir}/${queue}/info/nproc`
+      ((tcnt = ecnt+wcnt))
+      
+      echo "${pcnt}/${mprc} processes"
+      echo "${ecnt} task(s) excecuting"
+      echo "${wcnt} task(s) waiting"
+      echo "${tcnt} task(s) in total"
+      ;;
+  esac	  
+} # sqs_list_queue
+
+#_______________________________________________________________________________
+sqs_list_task() {
+  # list tasks in queue
+  #
+  local queue=${1}
+  local task=${2}
+  
+  if ! [ -e ${vardir}/${queue} ] ; then
+      echo "No queue '${queue}' in system"
+      return
+  fi
+  
+  case "${task}" in
+    "first")
+      first=`ls ${vardir}/${queue}/wait/ | sort -n | head -n 1`
+      echo -n "${first}: "
+      cat "${vardir}/${queue}/wait/${first}"
+      ;;
+    "last")
+      last=`ls ${vardir}/${queue}/wait/ | sort -n | tail -n 1`
+      echo -n "${last}: "
+      cat "${vardir}/${queue}/wait/${last}"
+      ;;
+    "all")
+      echo "Listing all tasks in queue '${queue}'"
+      list=`ls ${vardir}/${queue}/exec | sort -n`
+      
+      echo "Currently executing:"
+      for tsk in ${list} ; do
+	echo -n "${tsk}: "
+	cat ${vardir}/${queue}/exec/${tsk}
+      done
+      
+      list=`ls ${vardir}/${queue}/wait | sort -n`
+      
+      echo "Waiting tasks:"
+      for tsk in ${list} ; do
+	echo -n "${tsk}: "
+	cat ${vardir}/${queue}/wait/${tsk}
+      done
+      ;;
+    "proc")
+      list=`ls ${vardir}/${queue}/proc | sort -n`
+      
+      echo "Listing all processes"
+      for prc in ${list} ; do
+	echo -n "${prc}: "
+	cat ${vardir}/${queue}/proc/${prc}
+      done     
+      ;;
+    "exec")
+      list=`ls ${vardir}/${queue}/exec | sort -n`
+      
+      echo "Currently executing:"
+      for tsk in ${list} ; do
+	echo -n "${tsk}: "
+	cat ${vardir}/${queue}/exec/${tsk}
+      done
+      ;;
+    "wait")
+      list=`ls ${vardir}/${queue}/wait | sort -n`
+      
+      echo "Waiting tasks:"
+      for tsk in ${list} ; do
+	echo -n "${tsk}: "
+	cat ${vardir}/${queue}/wait/${tsk}
+      done
+      ;;
+    [0-9]*)
+      if [ -e ${vardir}/${queue}/wait/${task} ] ; then
+        echo -n "${task}: "
+        cat ${vardir}/${queue}/wait/${task}
+      elif [ -e ${vardir}/${queue}/exec/${task} ] ; then
+        echo -n "${task}: "
+        cat ${vardir}/${queue}/exec/${task}
+	echo "(running)"
+      else
+	echo "there is no task '${task}' in queue '${queue}'"
+      fi
+      ;;
+    *)
+      echo "sqsadmin: Error, unknown argument '${task}'"
+      ;;	  
+  esac
+} # sqs_list_task
+
+#_______________________________________________________________________________
+sqs_remove() {
+  # helper function for remove
+  # 
+  local queue=${1}
+  local task=${2}
+    
+  if [ "x${queue}" = "x" ] ; then
+    echo "sqsadmin: Error, specify queue!"
+    return
+  fi
+
+  if [ "x${task}" = "x" ] ; then
+      sqs_remove_queue ${queue}
+  else
+      sqs_remove_task ${queue} ${task}
+  fi
+} # sqs_remove
+
+#_______________________________________________________________________________
+sqs_remove_queue() {
+  # remove task from queue
+  #
+  local queue=${1}
+
+  if [ "x${queue}" = "x" ] ; then
+    echo "sqsadmin: Error, specify queue!"
+    return
+  fi
+
+  echo "sqsadmin: Would now remove queue '${queue}'"
+
+}
+
+#_______________________________________________________________________________
+sqs_remove_task() {
+  # remove tasks in queue
+  #
+  local queue=${1}
+  local task=${2}
+  
+  case "${task}" in
+    "first")
+      if query "Really remove first waiting task from queue '${queue}'?" ; then
+	echo "Would now remove first task from queue '${queue}'"
+      fi
+      ;;
+    "last")
+      if query "Really remove last waiting task from queue '${queue}'?" ; then
+        echo "Would now remove last waiting task from queue '${queue}'"
+      fi
+      ;;
+    "all")
+      if query "Really remove all waiting task from queue '${queue}'?" ; then
+        echo "Removing all waiting tasks in queue '${queue}'"
+	sqslock ${vardir}/${queue}
+	
+	list=`ls ${vardir}/${queue}/wait/ | sort -n`
+	
+	for tsk in ${list} ; do
+	  echo -n "Removing ${tsk}: "
+	  cat ${vardir}/${queue}/wait/${tsk}
+	  rm ${vardir}/${queue}/wait/${tsk}
+	done
+	sqsunlock ${vardir}/${queue}
+      fi
+      ;;
+    [0-9]*)
+      if query "Really remove waiting task '${task}' from queue '${queue}'?" ; then
+	sqslock ${vardir}/${queue}
+        echo -n "Removing ${task}: "
+	cat ${vardir}/${queue}/wait/${task}
+	rm ${vardir}/${queue}/wait/${task}
+	sqsunlock ${vardir}/${queue}
+      fi
+      ;;
+    *)
+      echo "sqsadmin: Error, unknown argument '${task}'"
+      ;;	  
+  esac
+} # sqs_remove_task
+
+
+#_______________________________________________________________________________
+query() {
+  # Helper Q/A-function
+  #
+  echo -n "${1} "
+  read ans
+  
+  if [[ "x${ans}" = "xy" || "x${ans}" = "xyes" ]] ; then
+      return 0
+  fi
+
+  return 1
+} # query
+
+#_______________________________________________________________________________
+# Script entry point
+#
+
+# parse options
+case "${1}" in
+    "")
+	print_usage
+	;;
+    "help" | "h")
+	print_usage
+	;;
+    "list" | "ls")
+	shift
+	sqs_list $*
+	;;
+    "remove" | "rm")
+	shift
+	sqs_remove $*
+	;;
+    "lock")
+	echo "sqsadmin: Error, command '${1}' not yet implemented"
+	#shift
+        #sqs_lock $*
+	;;
+    "unlock")
+	echo "sqsadmin: Error, command '${1}' not yet implemented"
+	#shift
+        #sqs_unlock $*
+	;;
+    "stop")
+	echo "sqsadmin: Error, command '${1}' not yet implemented"
+	#shift
+        #sqs_stop $*
+	;;
+    "continue")
+	echo "sqsadmin: Error, command '${1}' not yet implemented"
+	#shift
+        #sqs_continue $*
+        ;;
+    "kill")
+	echo "sqsadmin: Error, command '${1}' not yet implemented"
+	#shift
+        #sqs_kill $*
+	;;
+    *)
+	echo "sqsadmin: Error, unknown command '${1}'"
+	print_usage
+esac

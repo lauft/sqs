@@ -5,6 +5,7 @@
 
 noact="no"
 logfile=config.log
+configargs="$*"
 
 ######################################################################
 #
@@ -211,6 +212,14 @@ sed -e "s|@prefix@|${prefix}|" \
 rm -f Makefile.tmp
 
 result "done"
+
+#---------------------------------------------------------------------
+# config.status
+#
+message "Writing config.status"
+configargs=`echo $configargs | sed 's,\\\,\\\\,g'`
+echo "$configargs" > config.status
+result done
 
 ######################################################################
 #

@@ -5,42 +5,110 @@
 # Retrieves sucessively tasks from queue and waits for their completion
 #
 
+source sqsconfig
+
 if [ $# -ne 1 ] ; then
-	echo "sqsrunner: wrong argument count!"
-	exit 1
+  echo "sqsrunner: wrong argument count! ($*)"
+  exit 1
 fi
 
-queue=$1
+queue=${1}
+host=`hostname`
+key="${host}.$$"
 
 if ! [ -e ${queue} ] ; then
   echo "sqsrunner: queue '${queue}' does not exist!"
-	exit 2
+  exit 2
 fi
 
-
 while [ true ] ; do
-  sqslock ${queue}
+  sqslock ${queue} ${key} || exit $?
 
-  # retrieve task from queue
-  id=`ls ${queue} | grep -v "lockfile" | sort -n | head -n 1`
+  # retrieve number of waiting tasks (ntsk)
+  ntsk=`ls ${queue}/wait | wc -w`
 
-  if [ "${id}" = "" ] ; then
-	  echo "sqsrunner: no more tasks in list"
-	  break
-	fi
+  # retrieve number of processes running (nproc)
+  nproc=`ls ${queue}/proc/${host}.* 2>/dev/null | wc -w`
 
-  task=`cat ${queue}/${id}`
-	rm -f ${queue}/${id}
-	echo "sqsrunner: executing task ${id}: '${task}'"
-	sqsunlock ${queue}
-		
+  # quit if ntsk = 0 and nproc > 0
+  # also close queue if ntsk = 0 and nproc = 0
+  if [ ${ntsk} -eq 0 ] ; then 
+    if [ "x${verbose}" = "xyes" ] ; then
+      echo "sqsrunner: no more tasks in queue '${queue}'"
+      echo "${nproc}"
+    fi
+
+    sqsunlock ${queue} ${key}
+
+    if [ ${nproc} -eq 0 ] ; then
+      if [ "x${verbose}" = "xyes" ] ; then
+	echo "sqsrunner: all processes have finished"
+      fi
+      sqslock ${vardir} ${key} || exit $?
+      sqslock ${queue} ${key} || exit $?
+
+      #TODO: keep one runner per machine alive as long there are processes running in case of new tasks being added
+
+      if [ "x${verbose}" = "xyes" ] ; then
+        echo "sqsrunner: closing queue '${queue}'"
+      fi
+
+      rm -r ${queue}
+      sqsunlock ${vardir} ${key} || exit $?
+    fi
+    
+    break
+  fi
+
+  # retrieve number of maximum allowed processes (nmax)
+  nmax=`cat ${queue}/info/nproc | grep ${host} | sed "s|^.*:||"`
+
+  # add next process to number of running processes
+  ((nproc++))
+
+  # fork if nproc < nmax
+  if [ "${nproc}" -lt "${nmax}" ] ; then
+    #echo "${nproc} < ${nmax}"
+    sqsrunner ${queue} &
+  elif [  "${nproc}" -gt "${nmax}" ] ; then 
+    #echo "${nproc} >= ${nmax}"
+    sqsunlock ${queue} ${key} || exit $?
+    break
+  fi
+    
+  # retrieve nice level for queue
+  nlvl=`cat ${queue}/info/nice | grep ${host} | sed "s|^.*:||"`
+
+  # retrieve first task from queue
+  tid=`ls ${queue}/wait | sort -n | head -n 1`
+    
+  if [ "${tid}" = "" ] ; then
+    if [ "x${verbose}" = "xyes" ] ; then
+      echo "sqsrunner: no more tasks in list"
+    fi
+    break
+  fi
+
+  task=`cat ${queue}/wait/${tid}`
+  mv -f ${queue}/wait/${tid} ${queue}/exec/
+
+  sqsunlock ${queue} ${key} || exit $?
+
+  if [ "x${verbose}" = "xyes" ] ; then
+    echo "sqsrunner: executing task ${tid}: '${task}'"
+  fi
+   
   # start task
-	${task} &
+  nice -n ${nlvl} ${task} &
+  pid=$!
+
+  echo "${id}" > ${queue}/proc/${host}.${pid}
 
   # wait for completion
-	wait
+  wait ${pid}
 
+  rm -f ${queue}/exec/${tid}
+  rm -f ${queue}/proc/${host}.${pid}
 done
 
-sqsunlock ${queue}
-
+### EOF
