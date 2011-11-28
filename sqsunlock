@@ -21,7 +21,7 @@ if ! [ -e ${dir}/lockfile/${tag} ] ; then
 fi
 
 if [ "x${verbose}" = "xyes" ] ; then
-  echo "sqsunlock: unlocking '${dir}'"
+  echo "sqsunlock: unlocking '${dir}' (${tag})"
 fi 
 
 rm -rf ${dir}/lockfile
