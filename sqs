@@ -7,7 +7,6 @@ master="no"
 dryrun="no"
 targets=""
 call=""
-nice="0"
 verbose="no"
 host=$(hostname)
 
@@ -16,9 +15,9 @@ usage() {
 PROGNAME=${0##*/}
 cat << EOF
 
-$PROGNAME, a simple queuing system.
+SQS, a simple queuing system.
 
-Usage: $PROGNAME [OPTIONS] --call <name> TARGETS
+Usage: $PROGNAME [OPTIONS] --call <name> [TARGETS]
 
 Options:
   --call     define the program call
@@ -26,10 +25,13 @@ Options:
   --queue    specify the name of the queue
   
   --host     specify host [hostname:processes:nicelevel]
+             if hostname is omitted, name of current host is set.
 
-  --nproc    maximum number of parallel processes for current host
+  --nproc    maximum number of parallel processes for host [hostname:processes]
+             if hostname is omitted, current host is set.
 
-  --nice     set nice level for queue for current host
+  --nice     set nice level for queue for host [hostname:nicelevel]
+             if hostname is omitted, name of current host is set.
 
   --logfile  redirect output of each process to a logfile '<target>.log'
 
@@ -51,7 +53,9 @@ add_to_hostlist() {
     echo "sqs[add_to_hostlist]: wrong argument count"
     return 1
   fi
-  
+
+	#echo "add_to_hostlist $*"
+
   # check host
   host ${1} >/dev/null 2>&1 || return 12
 
@@ -59,12 +63,27 @@ add_to_hostlist() {
   [[ ${2} =~ [[:digit:]] ]] || return 13
 
   # check nice level
-  [[ ${3} =~ [[:digit:]] ]] || return 14
+  [[ ${3} =~ [-]?[[:digit:]] ]] || return 14
+
+	local mm=${1}
+	local pp=${2}
+	local nn=${3}
+
+	# try to retrieve previous if default values are given
+	if [ ${2} -lt 1 ] ; then
+		tmp=`echo ${hostlist} | tr ';' '\n' | grep ${mm}`
+		test "x${tmp}" = "x" || pp=${tmp#*:} ; pp=${pp%:*}
+	fi
+
+	if [ ${3} -lt 0 ] ; then
+		tmp=`echo ${hostlist} | tr ';' '\n' | grep ${mm}`
+		test "x${tmp}" = "x" || nn=${tmp##*:} ; nn=${nn%;}
+	fi
 
   # delete any previous occurrence of this host
-  hostlist=`echo ${hostlist} | sed "s|${1}:.*;||g"`  
+  hostlist=`echo ${hostlist} | sed "s|${mm}:[0-9]*:[-]*[0-9]*;||g"`  
   # add new host specification
-  hostlist="${1}:${2}:${3};${hostlist}"
+  hostlist="${mm}:${pp}:${nn};${hostlist}"
 
   return 0
 } # add_to_hostlist
@@ -82,46 +101,60 @@ while [ ${1:q} ]; do
       ;;
     --nproc )
       shift
-      m=${host}
-      p=${1}
-      n=0
-      add_to_hostlist ${m} ${p} ${n} || { usage ; exit $? ; }
+      case "${1}" in
+        *:[[:digit:]]*)
+				  m=${1%:*}
+					p=${1#*:}
+					;;
+        [[:digit:]]*)			
+				  m=${host}
+					p=${1}
+					;;
+			esac
+      add_to_hostlist ${m} ${p} -1 || { usage ; exit $? ; }
       ;;
     --nice )
       shift
-      m=${host}
-      p=0
-      n=${1}
-      add_to_hostlist ${m} ${p} ${n} || { usage ; exit $? ; }
+      case "${1}" in
+        *:[[:digit:]]*)
+				  m=${1%:*}
+					n=${1#*:}
+					;;				  
+        [[:digit:]]*)			
+				  m=${host}
+					n=${1}
+					;;
+			esac
+      add_to_hostlist ${m} 0 ${n} || { usage ; exit $? ; }
       ;;
     --host )
       shift
       case "${1}" in
-	*:[[:digit:]]*:[[:digit:]]*)
-	  m=${1%%:*}
-	  p=${1#*:}; p=${p%:*}
-	  n=${1##*:}
-	  ;;
+        *:[[:digit:]]*:[[:digit:]]*)
+				  m=${1%%:*}
+					p=${1#*:}; p=${p%:*}
+					n=${1##*:}
+					;;
         *:[[:digit:]]*)
-          m=${1%:*}
-	  p=${1#*:}
-          n=0
-	  ;;
-	[[:digit:]]*:[[:digit:]]*)
-	  m=${host}
+				  m=${1%:*}
+					p=${1#*:}
+          n=-1
+					;;
+				[[:digit:]]*:[[:digit:]]*)
+				  m=${host}
           p=${1%:*}
           n=${1#*:}
           ;;
-	[[:digit:]]*)
-	  m=${host}
-	  p=${1}
-	  n=0
-	  ;;
-	*)
-	  m=${1}
-	  p=0
-	  n=0
-	  ;;
+				[[:digit:]]*)
+				  m=${host}
+					p=${1}
+					n=-1
+					;;
+				*)
+				  m=${1}
+					p=0
+					n=-1
+					;;
       esac
       add_to_hostlist ${m} ${p} ${n}
       ;;
@@ -173,7 +206,7 @@ export verbose
 
 # default for hostlist
 if [ "x${hostlist}" = "x" ] ; then
-  hostlist="${host}:0:0"
+  hostlist="${host}:0:-1"
 fi
 
 # generate lock key
@@ -228,12 +261,35 @@ if [ -e "${vardir}/${queue}" ] ; then
     p=${host#*:}; p=${p%:*}
     n=${host##*:}
       
-    # TODO overwrite maxproc and nice for machine specifically!!!
-    # NEED default value for nice level as for maxproc!!!!
-    if [ ${maxproc} -gt 0 ] ; then
-      echo "${host}:${maxproc}" > ${vardir}/${queue}/info/nproc
-    fi
-    echo "${host}:${nice}" > ${vardir}/${queue}/info/nice
+	  # try to retrieve previous if default values are given
+		if [ ${p} -lt 1 ] ; then
+		  tmp=`grep ${m} ${vardir}/${queue}/info/nproc`
+			if [ "x${tmp}" = "x" ] ; then
+				p=1
+			else
+				p=${tmp#*:} ; p=${p%:*}
+			fi
+		fi
+
+		if [ ${n} -lt 0 ] ; then
+			tmp=`grep ${m} ${vardir}/${queue}/info/nice`
+			if [ "x${tmp}" = "x" ] ; then
+				n=0
+			else
+				n=${tmp##*:} ; n=${n%;}
+			fi
+		fi
+		
+		# remove previous entries for this host
+		grep -v ${m} ${vardir}/${queue}/info/nproc > ${vardir}/${queue}/info/nproc.tmp
+		grep -v ${m} ${vardir}/${queue}/info/nice  > ${vardir}/${queue}/info/nice.tmp
+
+		# add new values
+		echo "${m}:${p}" >> ${vardir}/${queue}/info/nproc.tmp
+    echo "${m}:${n}" >> ${vardir}/${queue}/info/nice.tmp
+
+		mv ${vardir}/${queue}/info/nproc.tmp ${vardir}/${queue}/info/nproc
+		mv ${vardir}/${queue}/info/nice.tmp  ${vardir}/${queue}/info/nice
   done
   
   IFS=${separator}
@@ -243,13 +299,16 @@ else
   fi
   # setting default value for number of processes where neccessary
   hostlist=`echo ${hostlist} | sed "s|:0:|:1:|g"`
+  hostlist=`echo ${hostlist} | sed "s|:-1|:0|g"`
   
   mkdir ${vardir}/${queue}
   mkdir ${vardir}/${queue}/wait
   mkdir ${vardir}/${queue}/exec
   mkdir ${vardir}/${queue}/proc
   mkdir ${vardir}/${queue}/info
-  echo "-1" > ${vardir}/${queue}/info/ntask
+
+  echo "-1"      > ${vardir}/${queue}/info/ntask
+	echo "${host}" > ${vardir}/${queue}/info/master
 
   separator=${IFS} ; IFS=";"
 
@@ -258,6 +317,7 @@ else
     p=${host#*:}; p=${p%:*}
     n=${host##*:}
 
+		echo "${m}"      >> ${vardir}/${queue}/info/hosts
     echo "${m}:${p}" >> ${vardir}/${queue}/info/nproc
     echo "${m}:${n}" >> ${vardir}/${queue}/info/nice
   done
@@ -294,7 +354,7 @@ for host in ${hostlist} ; do
   if [ "${host}" = "$(hostname)" ] ; then
     sqsrunner ${vardir}/${queue} &
   else 
-    ssh ${host} sqsrunner ${vardir}/${queue} &
+    ssh ${host} "verbose=${verbose} sqsrunner ${vardir}/${queue}" &
   fi
 done
 
