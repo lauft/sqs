@@ -7,6 +7,7 @@ default:
 
 install:
 	@mkdir -p $(VARDIR)
+	@mkdir -p $(BINDIR)
 	@cp sqs        $(BINDIR)/.	
 	@cp sqsrunner  $(BINDIR)/.
 	@cp sqslock    $(BINDIR)/.
