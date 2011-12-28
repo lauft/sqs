@@ -3,8 +3,6 @@
 source sqsconfig
 
 queue=""
-master="no"
-dryrun="no"
 targets=""
 call=""
 verbose="no"
@@ -14,30 +12,33 @@ host=$(hostname)
 usage() {
 PROGNAME=${0##*/}
 cat << EOF
-
 SQS, a simple queuing system.
 
 Usage: $PROGNAME [OPTIONS] --call <name> [TARGETS]
 
 Options:
-  --call     define the program call
+  --call     define the program call.
 
-  --queue    specify the name of the queue
+  --queue    specify the name of the queue.
   
   --host     specify host [hostname:processes:nicelevel]
              if hostname is omitted, name of current host is set.
 
-  --nproc    maximum number of parallel processes for host [hostname:processes]
+  --nproc    maximum number of parallel processes for host [hostname:processes].
              if hostname is omitted, current host is set.
 
   --nice     set nice level for queue for host [hostname:nicelevel]
              if hostname is omitted, name of current host is set.
+  
+  --create-only  only create the queue.
 
-  --logfile  redirect output of each process to a logfile '<target>.log'
+  --persistent  make the queue persistent.
 
-  --dry-run  do not process anything, just print what would happen
+  --logfile  redirect output of each process to a logfile '<target>.log'.
 
-  --verbose  give informational output
+  --dry-run  do not process anything, just print what would happen.
+
+  --verbose  give informational output.
 EOF
 exit
 }
@@ -158,6 +159,12 @@ while [ ${1:q} ]; do
       esac
       add_to_hostlist ${m} ${p} ${n}
       ;;
+    --create-only )
+			createonly="yes"
+		  ;;
+		--persistent )
+      persistent="yes"
+      ;;
     --logfile )
       echo "logfile option not yet supported!"
       ;;
@@ -190,17 +197,6 @@ done
 ################################################################################
 # script entry point
 #
-if [ -z "${call}" ] ; then
-  echo "sqs: no call specified!"
-  usage
-  exit 1
-fi
-
-if ! which ${call%% *} >/dev/null 2>&1 ; then
-  echo "sqs: program call '${call%% *}' is not accessible!"
-  exit 2
-fi
-
 # export verbosity
 export verbose
 
@@ -213,7 +209,18 @@ fi
 key="${host}.$$"
 
 # create queue name if not yet specified
-if [ -z ${queue} ] ; then
+if [ "x${queue}" = "x" ] ; then
+  if [ "x${call}" = "x" ] ; then
+    echo "sqs: no call specified!"
+    usage
+    exit 1
+  fi
+
+  if ! which ${call%% *} >/dev/null 2>&1 ; then
+    echo "sqs: program call '${call%% *}' is not accessible!"
+    exit 2
+  fi
+
   queue=${call##*/}
   queue=${queue%% *}
 fi
@@ -246,8 +253,6 @@ sqslock ${vardir} ${key} || exit $?
 if [ "x${verbose}" = "xyes" ] ; then
   echo "sqs: checking for queue ${vardir}/${queue}..."
 fi
-
-#separator=$IFS ; IFS=";"
 
 if [ -e "${vardir}/${queue}" ] ; then
   if [ "x${verbose}" = "xyes" ] ; then
@@ -325,6 +330,10 @@ else
   IFS=${separator}
 fi
 
+if [ "x${persistent}" = "xyes" ] ; then
+  touch ${vardir}/${queue}/info/persistent
+fi
+
 sqslock ${vardir}/${queue} ${key} || exit $?
 sqsunlock ${vardir} ${key} || exit $?
 
@@ -342,23 +351,25 @@ IFS=${separator}
 
 sqsunlock ${vardir}/${queue} ${key} || exit $?
 
-separator=$IFS ; IFS=";"
+if [ "x${createonly}" != "xyes" ] ; then
+  separator=$IFS ; IFS=";"
 
-for host in ${hostlist} ; do
-  host=${host%%:*}
-  # seed sqsrunner
-  if [ "x${verbose}" = "xyes" ] ; then
-    echo "sqs: seeding runners on '${host}'!"
-  fi
+  for host in ${hostlist} ; do
+    host=${host%%:*}
+    # seed sqsrunner
+    if [ "x${verbose}" = "xyes" ] ; then
+      echo "sqs: seeding runners on '${host}'!"
+    fi
 
-  if [ "${host}" = "$(hostname)" ] ; then
-    sqsrunner ${vardir}/${queue} &
-  else 
-    ssh ${host} "verbose=${verbose} sqsrunner ${vardir}/${queue}" &
-  fi
-done
+    if [ "${host}" = "$(hostname)" ] ; then
+      sqsrunner ${vardir}/${queue} &
+    else 
+      ssh ${host} "verbose=${verbose} sqsrunner ${vardir}/${queue}" &
+    fi
+  done
 
-IFS=${separator}
+  IFS=${separator}
+fi
 
 if [ "x${verbose}" = "xyes" ] ; then
   echo "sqs: finished!"
