@@ -39,7 +39,6 @@ Options:
 
   --verbose  give informational output
 EOF
-exit
 }
 
 #_______________________________________________________________________________
@@ -60,33 +59,38 @@ add_to_hostlist() {
   host ${1} >/dev/null 2>&1 || return 12
 
   # check process limit
-  [[ ${2} =~ [[:digit:]] ]] || return 13
+  [[ ${2} =~ "\."|[[:digit:]] ]] || return 13
 
   # check nice level
-  [[ ${3} =~ [-]?[[:digit:]] ]] || return 14
+  [[ ${3} =~ "\."|[-]?[[:digit:]] ]] || return 14
 
 	local mm=${1}
 	local pp=${2}
 	local nn=${3}
 
 	# try to retrieve previous if default values are given
-	if [ ${2} -lt 1 ] ; then
-		tmp=`echo ${hostlist} | tr ';' '\n' | grep ${mm}`
+	if [ "${2}" = "." ] ; then
+		tmp=`echo ${hostlist} | tr ' ' '\n' | grep ${mm}`
 		test "x${tmp}" = "x" || pp=${tmp#*:} ; pp=${pp%:*}
 	fi
 
-	if [ ${3} -lt 0 ] ; then
-		tmp=`echo ${hostlist} | tr ';' '\n' | grep ${mm}`
+	if [ "${3}" = "." ] ; then
+		tmp=`echo ${hostlist} | tr ' ' '\n' | grep ${mm}`
 		test "x${tmp}" = "x" || nn=${tmp##*:} ; nn=${nn%;}
 	fi
 
   # delete any previous occurrence of this host
   hostlist=`echo ${hostlist} | sed "s|${mm}:[0-9]*:[-]*[0-9]*;||g"`  
   # add new host specification
-  hostlist="${mm}:${pp}:${nn};${hostlist}"
+  hostlist="${mm}:${pp}:${nn} ${hostlist}"
 
   return 0
 } # add_to_hostlist
+
+################################################################################
+#
+# script entry point
+#
 
 # Parsing options
 while [ ${1:q} ]; do
@@ -111,7 +115,7 @@ while [ ${1:q} ]; do
 					p=${1}
 					;;
 			esac
-      add_to_hostlist ${m} ${p} -1 || { usage ; exit $? ; }
+      add_to_hostlist ${m} ${p} "." || { ec=$?; usage ; exit ${ec}; }
       ;;
     --nice )
       shift
@@ -125,39 +129,42 @@ while [ ${1:q} ]; do
 					n=${1}
 					;;
 			esac
-      add_to_hostlist ${m} 0 ${n} || { usage ; exit $? ; }
+      add_to_hostlist ${m} "." ${n} || { ec=$?; usage ; exit ${ec}; }
       ;;
     --host )
       shift
       case "${1}" in
-        *:[[:digit:]]*:[[:digit:]]*)
+        *:[[:digit:]]*:[[:digit:]]* )
 				  m=${1%%:*}
 					p=${1#*:}; p=${p%:*}
 					n=${1##*:}
 					;;
-        *:[[:digit:]]*)
+				*:[[:digit:]]*  )
 				  m=${1%:*}
 					p=${1#*:}
-          n=-1
+          n="."
 					;;
-				[[:digit:]]*:[[:digit:]]*)
+				[[:digit:]]*:[[:digit:]]* | .:[[:digit:]]* | [[:digit:]]*:. )
 				  m=${host}
           p=${1%:*}
           n=${1#*:}
           ;;
-				[[:digit:]]*)
+				[[:digit:]]* )
 				  m=${host}
 					p=${1}
-					n=-1
+					n="."
 					;;
 				*)
 				  m=${1}
-					p=0
-					n=-1
+					p="."
+					n="."
 					;;
       esac
-      add_to_hostlist ${m} ${p} ${n}
+      add_to_hostlist ${m} ${p} ${n} || { ec=$?; usage ; exit ${ec}; }
       ;;
+		--persist )
+			options="${options} master= persist=yes"
+			;;
     --logfile )
       echo "logfile option not yet supported!"
       ;;
@@ -187,9 +194,6 @@ while [ ${1:q} ]; do
   shift    
 done
 
-################################################################################
-# script entry point
-#
 if [ -z "${call}" ] ; then
   echo "sqs: no call specified!"
   usage
@@ -203,11 +207,6 @@ fi
 
 # export verbosity
 export verbose
-
-# default for hostlist
-if [ "x${hostlist}" = "x" ] ; then
-  hostlist="${host}:0:-1"
-fi
 
 # generate lock key
 key="${host}.$$"
@@ -228,13 +227,19 @@ else
 fi
 
 tasklist=${tasklist#;}
-hostlist=${hostlist%;}
+hostlist=${hostlist% }
+hostlist=${hostlist# }
+
+# default for hostlist
+if [ "x${hostlist}" = "x" ] ; then
+  hostlist="${host}:.:."
+fi
 
 # if dry run, stop here
 if [ "x${dryrun}" = "xyes" ] ; then
   echo "call : ${call}"
   echo "queue: ${queue}"
-  echo "hosts: ${hostlist}" | sed -e "s|;|\n       |g"
+  echo -n "hosts: "; echo "${hostlist}" | sed -e "s| |\n       |g"
   echo "tasks: ${tasklist}" | sed -e "s|;|\n       |g"
   exit 0
 fi
@@ -244,90 +249,16 @@ fi
 sqslock ${vardir} ${key} || exit $?
 
 if [ "x${verbose}" = "xyes" ] ; then
-  echo "sqs: checking for queue ${vardir}/${queue}..."
+  echo "sqs: updating queue ${vardir}/${queue}..."
 fi
 
-#separator=$IFS ; IFS=";"
-
-if [ -e "${vardir}/${queue}" ] ; then
-  if [ "x${verbose}" = "xyes" ] ; then
-    echo "sqs: queue already exists!"
-  fi
-
-  separator=${IFS} ; IFS=";"
-
-  for host in ${hostlist} ; do
-    m=${host%%:*}
-    p=${host#*:}; p=${p%:*}
-    n=${host##*:}
-      
-	  # try to retrieve previous if default values are given
-		if [ ${p} -lt 1 ] ; then
-		  tmp=`grep ${m} ${vardir}/${queue}/info/nproc`
-			if [ "x${tmp}" = "x" ] ; then
-				p=1
-			else
-				p=${tmp#*:} ; p=${p%:*}
-			fi
-		fi
-
-		if [ ${n} -lt 0 ] ; then
-			tmp=`grep ${m} ${vardir}/${queue}/info/nice`
-			if [ "x${tmp}" = "x" ] ; then
-				n=0
-			else
-				n=${tmp##*:} ; n=${n%;}
-			fi
-		fi
-		
-		# remove previous entries for this host
-		grep -v ${m} ${vardir}/${queue}/info/nproc > ${vardir}/${queue}/info/nproc.tmp
-		grep -v ${m} ${vardir}/${queue}/info/nice  > ${vardir}/${queue}/info/nice.tmp
-
-		# add new values
-		echo "${m}:${p}" >> ${vardir}/${queue}/info/nproc.tmp
-    echo "${m}:${n}" >> ${vardir}/${queue}/info/nice.tmp
-
-		mv ${vardir}/${queue}/info/nproc.tmp ${vardir}/${queue}/info/nproc
-		mv ${vardir}/${queue}/info/nice.tmp  ${vardir}/${queue}/info/nice
-  done
-  
-  IFS=${separator}
-else 
-  if [ "x${verbose}" = "xyes" ] ; then
-    echo "sqs: queue does not exist, creating new queue!"
-  fi
-  # setting default value for number of processes where neccessary
-  hostlist=`echo ${hostlist} | sed "s|:0:|:1:|g"`
-  hostlist=`echo ${hostlist} | sed "s|:-1|:0|g"`
-  
-  mkdir ${vardir}/${queue}
-  mkdir ${vardir}/${queue}/wait
-  mkdir ${vardir}/${queue}/exec
-  mkdir ${vardir}/${queue}/proc
-  mkdir ${vardir}/${queue}/info
-
-  echo "-1"      > ${vardir}/${queue}/info/ntask
-	echo "${host}" > ${vardir}/${queue}/info/master
-
-  separator=${IFS} ; IFS=";"
-
-  for host in ${hostlist} ; do
-    m=${host%%:*}
-    p=${host#*:}; p=${p%:*}
-    n=${host##*:}
-
-		echo "${m}"      >> ${vardir}/${queue}/info/hosts
-    echo "${m}:${p}" >> ${vardir}/${queue}/info/nproc
-    echo "${m}:${n}" >> ${vardir}/${queue}/info/nice
-  done
-
-  IFS=${separator}
-fi
+# Creating/updating queue
+sqsupdate "${vardir}/${queue}" "${hostlist}" "${options}" || exit $?
 
 sqslock ${vardir}/${queue} ${key} || exit $?
 sqsunlock ${vardir} ${key} || exit $?
 
+# Adding tasks
 separator=$IFS ; IFS=";"
 
 for task in ${tasklist} ; do
@@ -342,7 +273,7 @@ IFS=${separator}
 
 sqsunlock ${vardir}/${queue} ${key} || exit $?
 
-separator=$IFS ; IFS=";"
+#separator=$IFS ; IFS=";"
 
 for host in ${hostlist} ; do
   host=${host%%:*}
@@ -358,7 +289,7 @@ for host in ${hostlist} ; do
   fi
 done
 
-IFS=${separator}
+#IFS=${separator}
 
 if [ "x${verbose}" = "xyes" ] ; then
   echo "sqs: finished!"
