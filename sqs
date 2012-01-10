@@ -53,7 +53,7 @@ add_to_hostlist() {
     return 1
   fi
 
-	#echo "add_to_hostlist $*"
+  #echo "add_to_hostlist $*"
 
   # check host
   host ${1} >/dev/null 2>&1 || return 12
@@ -64,20 +64,20 @@ add_to_hostlist() {
   # check nice level
   [[ ${3} =~ "\."|[-]?[[:digit:]] ]] || return 14
 
-	local mm=${1}
-	local pp=${2}
-	local nn=${3}
+  local mm=${1}
+  local pp=${2}
+  local nn=${3}
 
-	# try to retrieve previous if default values are given
-	if [ "${2}" = "." ] ; then
-		tmp=`echo ${hostlist} | tr ' ' '\n' | grep ${mm}`
-		test "x${tmp}" = "x" || pp=${tmp#*:} ; pp=${pp%:*}
-	fi
+  # try to retrieve previous if default values are given
+  if [ "${2}" = "." ] ; then
+    tmp=`echo ${hostlist} | tr ' ' '\n' | grep ${mm}`
+    test "x${tmp}" = "x" || pp=${tmp#*:} ; pp=${pp%:*}
+  fi
 
-	if [ "${3}" = "." ] ; then
-		tmp=`echo ${hostlist} | tr ' ' '\n' | grep ${mm}`
-		test "x${tmp}" = "x" || nn=${tmp##*:} ; nn=${nn%;}
-	fi
+  if [ "${3}" = "." ] ; then
+    tmp=`echo ${hostlist} | tr ' ' '\n' | grep ${mm}`
+    test "x${tmp}" = "x" || nn=${tmp##*:} ; nn=${nn%;}
+  fi
 
   # delete any previous occurrence of this host
   hostlist=`echo ${hostlist} | sed "s|${mm}:[0-9]*:[-]*[0-9]*;||g"`  
@@ -107,64 +107,64 @@ while [ ${1:q} ]; do
       shift
       case "${1}" in
         *:[[:digit:]]*)
-				  m=${1%:*}
-					p=${1#*:}
-					;;
-        [[:digit:]]*)			
-				  m=${host}
-					p=${1}
-					;;
-			esac
+          m=${1%:*}
+          p=${1#*:}
+          ;;
+        [[:digit:]]*)      
+          m=${host}
+          p=${1}
+          ;;
+      esac
       add_to_hostlist ${m} ${p} "." || { ec=$?; usage ; exit ${ec}; }
       ;;
     --nice )
       shift
       case "${1}" in
         *:[[:digit:]]*)
-				  m=${1%:*}
-					n=${1#*:}
-					;;				  
-        [[:digit:]]*)			
-				  m=${host}
-					n=${1}
-					;;
-			esac
+          m=${1%:*}
+          n=${1#*:}
+          ;;          
+        [[:digit:]]*)      
+          m=${host}
+          n=${1}
+          ;;
+      esac
       add_to_hostlist ${m} "." ${n} || { ec=$?; usage ; exit ${ec}; }
       ;;
     --host )
       shift
       case "${1}" in
         *:[[:digit:]]*:[[:digit:]]* )
-				  m=${1%%:*}
-					p=${1#*:}; p=${p%:*}
-					n=${1##*:}
-					;;
-				*:[[:digit:]]*  )
-				  m=${1%:*}
-					p=${1#*:}
+          m=${1%%:*}
+          p=${1#*:}; p=${p%:*}
+          n=${1##*:}
+          ;;
+        *:[[:digit:]]*  )
+          m=${1%:*}
+          p=${1#*:}
           n="."
-					;;
-				[[:digit:]]*:[[:digit:]]* | .:[[:digit:]]* | [[:digit:]]*:. )
-				  m=${host}
+          ;;
+        [[:digit:]]*:[[:digit:]]* | .:[[:digit:]]* | [[:digit:]]*:. )
+          m=${host}
           p=${1%:*}
           n=${1#*:}
           ;;
-				[[:digit:]]* )
-				  m=${host}
-					p=${1}
-					n="."
-					;;
-				*)
-				  m=${1}
-					p="."
-					n="."
-					;;
+        [[:digit:]]* )
+          m=${host}
+          p=${1}
+          n="."
+          ;;
+        *)
+          m=${1}
+          p="."
+          n="."
+          ;;
       esac
       add_to_hostlist ${m} ${p} ${n} || { ec=$?; usage ; exit ${ec}; }
       ;;
-		--persist )
-			options="${options} master= persist=yes"
-			;;
+    --persist )
+      options="${options} master= persist=yes"
+      ;;
     --logfile )
       echo "logfile option not yet supported!"
       ;;
