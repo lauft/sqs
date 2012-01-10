@@ -82,16 +82,13 @@ for host in ${hostlist} ; do
 	fi
 		
 	# remove previous entries for this host
-	grep -v ${m} ${queue}/info/hosts > ${queue}/info/hosts.tmp
 	grep -v ${m} ${queue}/info/nproc > ${queue}/info/nproc.tmp
 	grep -v ${m} ${queue}/info/nice  > ${queue}/info/nice.tmp
 
 	# add new values
-	echo "${m}"      >> ${queue}/info/hosts.tmp
 	echo "${m}:${p}" >> ${queue}/info/nproc.tmp
 	echo "${m}:${n}" >> ${queue}/info/nice.tmp
 
-	mv ${queue}/info/hosts.tmp ${queue}/info/hosts
 	mv ${queue}/info/nproc.tmp ${queue}/info/nproc
 	mv ${queue}/info/nice.tmp  ${queue}/info/nice
 done
