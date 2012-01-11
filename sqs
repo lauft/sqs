@@ -17,27 +17,38 @@ cat << EOF
 
 SQS, a simple queuing system.
 
-Usage: $PROGNAME [OPTIONS] --call <name> [TARGETS]
+Usage: $PROGNAME [OPTIONS] --call <CALL> [TARGETS]
 
 Options:
-  --call     define the program call
+  --call <CALL>
+             define the program call.
 
-  --queue    specify the name of the queue
+  --queue <QUEUE>
+             specify the name of the queue. If not given, the name of the 
+             program call (without parameters) is taken.
   
-  --host     specify host [hostname:processes:nicelevel]
+  --config <FILE>
+             read host specifications from <FILE>. Host specifications are 
+             expected in the format <hostname>:<processes>:<nice>:<ionice>.
+             Lines beginning with '#' are ignored.
+             
+  --host     specify host [hostname:processes:nicelevel].
              if hostname is omitted, name of current host is set.
 
-  --nproc    maximum number of parallel processes for host [hostname:processes]
+  --nproc    maximum number of parallel processes for host [hostname:processes].
              if hostname is omitted, current host is set.
 
-  --nice     set nice level for queue for host [hostname:nicelevel]
+  --nice     set nice level for queue for host [hostname:nicelevel].
              if hostname is omitted, name of current host is set.
 
-  --logfile  redirect output of each process to a logfile '<target>.log'
+  --ionice   set nice level for queue for host [hostname:ionicelevel].
+             if hostname is omitted, name of current host is set.
 
-  --dry-run  do not process anything, just print what would happen
+  --logfile  redirect output of each process to a logfile '<target>.log'.
 
-  --verbose  give informational output
+  --dry-run  do not process anything, just print what would happen.
+
+  --verbose  give informational output.
 EOF
 }
 
@@ -86,6 +97,33 @@ add_to_hostlist() {
 
   return 0
 } # add_to_hostlist
+
+#_______________________________________________________________________________
+read_config()
+{
+  # read host specifications from config file
+  #
+  file=${1}
+
+  if ! [ -e ${file} ] ; then
+    echo "Config file '${file}' is inaccessible!"
+    return 1
+  fi
+
+  local m;
+  local p;
+  local n;
+
+  for hconf in $(grep -v "#" ${file}) ; do
+    m=${hconf%%:*}
+    p=${hconf#*:}; p=${p%:*}
+    n=${hconf##*:}
+    
+    add_to_hostlist ${m} ${p} ${n}
+  done
+
+  return 0
+} # read_config
 
 ################################################################################
 #
@@ -161,6 +199,10 @@ while [ ${1:q} ]; do
           ;;
       esac
       add_to_hostlist ${m} ${p} ${n} || { ec=$?; usage ; exit ${ec}; }
+      ;;
+    --config )
+      shift
+      read_config ${1} || exit $?
       ;;
     --persist )
       options="${options} master= persist=yes"
