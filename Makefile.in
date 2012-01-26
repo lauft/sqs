@@ -2,23 +2,33 @@ PREFIX=@prefix@
 BINDIR=@bindir@
 VARDIR=@vardir@
 
-default:
+FILES=sqsrunner \
+      sqslock \
+      sqsunlock \
+      sqsadmin
+
+SQSFILES=$(addprefix $(BINDIR)/,$(FILES))
+
+SETUP=Makefile sqsconfig
+
+default: $(SQSFILES) $(SETUP)
 	@echo "Run 'configure' and then 'make install'"
 
-install:
+install: $(BINDIR) $(VARDIR) $(SQSFILES)
+
+setup: $(SETUP)
+
+$(SETUP): Makefile.in sqsconfig.in
+	@echo "Running 'configure'..."
+	@cat config.status 2>/dev/null | xargs ./configure --no-create
+
+$(BINDIR) $(VARDIR):
 	@mkdir -p $(VARDIR)
 	@mkdir -p $(BINDIR)
-	@cp sqs        $(BINDIR)/.	
-	@cp sqsrunner  $(BINDIR)/.
-	@cp sqslock    $(BINDIR)/.
-	@cp sqsunlock  $(BINDIR)/.
-	@cp sqsconfig  $(BINDIR)/.
-	@cp sqsadmin   $(BINDIR)/.
-	@chmod 754 $(BINDIR)/sqs	
-	@chmod 754 $(BINDIR)/sqsrunner
-	@chmod 754 $(BINDIR)/sqslock
-	@chmod 754 $(BINDIR)/sqsunlock
-	@chmod 754 $(BINDIR)/sqsadmin
+
+$(BINDIR)/%: %
+	@cp -v $< $@	
+	@chmod 754 $@	
 
 clean:
 	@rm -f Makefile
