@@ -5,21 +5,21 @@ VARDIR=@vardir@
 FILES=sqsrunner \
       sqslock \
       sqsunlock \
+      sqsgetopt \
+      sqsupdate \
       sqsadmin
 
 SQSFILES=$(addprefix $(BINDIR)/,$(FILES))
 
-SETUP=Makefile sqsconfig
+SETUP=sqsconfig
 
-default: $(SQSFILES) $(SETUP)
-	@echo "Run 'configure' and then 'make install'"
+default: $(SETUP)
+	@echo "Run 'make install' to install SQS"
 
 install: $(BINDIR) $(VARDIR) $(SQSFILES)
 
-setup: $(SETUP)
-
 $(SETUP): Makefile.in sqsconfig.in
-	@echo "Running 'configure'..."
+	@echo "Re-Running 'configure'..."
 	@cat config.status 2>/dev/null | xargs ./configure --no-create
 
 $(BINDIR) $(VARDIR):
