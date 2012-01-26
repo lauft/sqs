@@ -1,0 +1,108 @@
+#!/bin/bash
+
+#
+# Helper script for the SQS
+# Creates a new queue directory or updates an existing one.
+#
+# WARNING: script does not lock <vardir>! Locking and release of the
+#          directory containing the queues has to be done by the caller!
+#
+# Parameters:
+# 1 = name of the queue
+# 2 = host definition(s)
+# 3 = options
+#
+# The host definitions are space separated and have to be in the format
+# <hostname>:<maxproc>:<nice>, where <maxproc> is the maximum number of
+# parallel processes for the respective host. If <maxproc> or <nice> are
+# equal to "." the the current value is kept or the default value is taken.
+#
+# The options are space separated and have to be in the format
+# <key>=<value>. Take heed that there is no space in the key-value pair!
+# Existing entries are overwritten with the new value.
+#
+
+if [ $# -ne 3 ] ; then
+  echo "sqsupdate: wrong argument count! ($*)"
+  exit 1
+fi
+
+queue=${1}
+hostlist=${2}
+options=${3}
+
+# creating queue if non-existent
+if ! [ -e "${queue}" ] ; then
+  if [ "x${verbose}" = "xyes" ] ; then
+    echo "sqs: queue does not exist, creating new queue!"
+  fi
+  mkdir ${queue}
+  mkdir ${queue}/wait
+  mkdir ${queue}/exec
+  mkdir ${queue}/proc
+  mkdir ${queue}/info
+
+	touch ${queue}/info/hosts
+	touch ${queue}/info/nproc
+	touch ${queue}/info/nice
+	touch ${queue}/info/ionice
+	
+  echo "-1"                 > ${queue}/info/ntask
+	echo "master=$(hostname)" > ${queue}/info/options
+	echo "run"                > ${queue}/info/state
+else
+  if [ "x${verbose}" = "xyes" ] ; then
+    echo "sqs: queue already exists!"
+  fi
+fi
+
+# updating hosts
+for host in ${hostlist} ; do
+	m=${host%%:*}
+	p=${host#*:}; p=${p%:*}
+	n=${host##*:}
+	
+	# try to retrieve previous value, if default values are given
+	if [ "${p}" = "." ] ; then
+	  tmp=`grep ${m} ${queue}/info/nproc`
+		if [ "x${tmp}" = "x" ] ; then
+			p=1
+		else
+			p=${tmp#*:} ; p=${p%:*}
+		fi
+	fi
+
+	if [ "${n}" = "." ] ; then
+		tmp=`grep ${m} ${queue}/info/nice`
+		if [ "x${tmp}" = "x" ] ; then
+			n=0
+		else
+			n=${tmp##*:} ; n=${n%;}
+		fi
+	fi
+		
+	# remove previous entries for this host
+	grep -v ${m} ${queue}/info/nproc > ${queue}/info/nproc.tmp
+	grep -v ${m} ${queue}/info/nice  > ${queue}/info/nice.tmp
+
+	# add new values
+	echo "${m}:${p}" >> ${queue}/info/nproc.tmp
+	echo "${m}:${n}" >> ${queue}/info/nice.tmp
+
+	mv ${queue}/info/nproc.tmp ${queue}/info/nproc
+	mv ${queue}/info/nice.tmp  ${queue}/info/nice
+done
+  
+# updating options
+for opt in ${options} ; do
+	key=${opt%=*}
+	# remove previous entries for this option
+	grep -v ${key} ${queue}/info/options > ${queue}/info/options.tmp
+	
+	# add new value
+	echo "${opt}" >> ${queue}/info/options.tmp
+
+	mv ${queue}/info/options.tmp ${queue}/info/options
+done
+
+exit 0
