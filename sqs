@@ -254,6 +254,8 @@ if [ -e "${vardir}/${queue}" ] ; then
     echo "sqs: queue already exists!"
   fi
 
+  sqslock "${vardir}/${queue}" ${key}
+
   separator=${IFS} ; IFS=";"
 
   for host in ${hostlist} ; do
@@ -292,6 +294,8 @@ if [ -e "${vardir}/${queue}" ] ; then
     mv ${vardir}/${queue}/info/nice.tmp  ${vardir}/${queue}/info/nice
   done
   
+  sqsunlock "${vardir}/${queue}" ${key}
+
   IFS=${separator}
 else 
   if [ "x${verbose}" = "xyes" ] ; then
