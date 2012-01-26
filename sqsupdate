@@ -1,77 +1,70 @@
 #!/bin/bash
 
-################################################################################
-# Update a SQS queue
-# If a queue does not exist, it is created. If it exists, its settings are updated
-# 
+#
+# Helper script for the SQS
+# Creates a new queue directory or updates an existing one.
+#
+# WARNING: script does not lock <vardir>! Locking and release of the
+#          directory containing the queues has to be done by the caller!
+#
+# Parameters:
+# 1 = name of the queue
+# 2 = host definition(s)
+# 3 = options
+#
+# The host definitions are space separated and have to be in the format
+# <hostname>:<maxproc>:<nice>, where <maxproc> is the maximum number of
+# parallel processes for the respective host. If <maxproc> or <nice> are
+# equal to "." the the current value is kept or the default value is taken.
+#
+# The options are space separated and have to be in the format
+# <key>=<value>. Take heed that there is no space in the key-value pair!
+# Existing entries are overwritten with the new value.
+#
 
-SUCCESS=0
-ERR_ARG_CNT=100
-
-source sqsconfig
-
-test $# -eq 3 || exit ${ERR_ARG_CNT}
+if [ $# -ne 3 ] ; then
+  echo "sqsupdate: wrong argument count! ($*)"
+  exit 1
+fi
 
 queue=${1}
 hostlist=${2}
-status=${3}
+options=${3}
 
-# generate lock key
-key="$(hostname).$$"
-
-sqslock ${vardir} ${key} || exit $?
-
-if [ "x${verbose}" = "xyes" ] ; then
-  echo "sqs: checking for queue ${vardir}/${queue}..."
-fi
-
-if ! [ -e "${vardir}/${queue}" ] ; then
+# creating queue if non-existent
+if ! [ -e "${queue}" ] ; then
   if [ "x${verbose}" = "xyes" ] ; then
     echo "sqs: queue does not exist, creating new queue!"
   fi
+  mkdir ${queue}
+  mkdir ${queue}/wait
+  mkdir ${queue}/exec
+  mkdir ${queue}/proc
+  mkdir ${queue}/info
 
-  mkdir ${vardir}/${queue}
-  mkdir ${vardir}/${queue}/wait
-  mkdir ${vardir}/${queue}/exec
-  mkdir ${vardir}/${queue}/proc
-  mkdir ${vardir}/${queue}/info
-
-  echo "-1"          > ${vardir}/${queue}/info/ntask
-	echo "$(hostname)" > ${vardir}/${queue}/info/master
-	echo "hold"        > ${vardir}/${queue}/info/status
-#  separator=${IFS} ; IFS=";"
-#
-#  for host in ${hostlist} ; do
-#    m=${host%%:*}
-#    p=${host#*:}; p=${p%:*}
-#    n=${host##*:}
-#
-#		echo "${m}"      >> ${vardir}/${queue}/info/hosts
-#    echo "${m}:${p}" >> ${vardir}/${queue}/info/nproc
-#    echo "${m}:${n}" >> ${vardir}/${queue}/info/nice
-#  done
-#
-#  IFS=${separator}
+	touch ${queue}/info/hosts
+	touch ${queue}/info/nproc
+	touch ${queue}/info/nice
+	touch ${queue}/info/ionice
+	
+  echo "-1"                 > ${queue}/info/ntask
+	echo "master=$(hostname)" > ${queue}/info/options
+	echo "run"                > ${queue}/info/state
 else
   if [ "x${verbose}" = "xyes" ] ; then
     echo "sqs: queue already exists!"
   fi
 fi
 
-if [ "x${persistent}" = "xyes" ] ; then
-  echo >> ${vardir}/${queue}/info/status
-fi
-
-separator=${IFS} ; IFS=";"
-
+# updating hosts
 for host in ${hostlist} ; do
-  m=${host%%:*}
-  p=${host#*:}; p=${p%:*}
-  n=${host##*:}
-      
-	# try to retrieve previous if default values are given
-	if [ ${p} -lt 1 ] ; then
-		tmp=`grep ${m} ${vardir}/${queue}/info/nproc`
+	m=${host%%:*}
+	p=${host#*:}; p=${p%:*}
+	n=${host##*:}
+	
+	# try to retrieve previous value, if default values are given
+	if [ "${p}" = "." ] ; then
+	  tmp=`grep ${m} ${queue}/info/nproc`
 		if [ "x${tmp}" = "x" ] ; then
 			p=1
 		else
@@ -79,8 +72,8 @@ for host in ${hostlist} ; do
 		fi
 	fi
 
-	if [ ${n} -lt 0 ] ; then
-		tmp=`grep ${m} ${vardir}/${queue}/info/nice`
+	if [ "${n}" = "." ] ; then
+		tmp=`grep ${m} ${queue}/info/nice`
 		if [ "x${tmp}" = "x" ] ; then
 			n=0
 		else
@@ -89,20 +82,27 @@ for host in ${hostlist} ; do
 	fi
 		
 	# remove previous entries for this host
-	grep -v ${m} ${vardir}/${queue}/info/nproc > ${vardir}/${queue}/info/nproc.tmp
-	grep -v ${m} ${vardir}/${queue}/info/nice  > ${vardir}/${queue}/info/nice.tmp
+	grep -v ${m} ${queue}/info/nproc > ${queue}/info/nproc.tmp
+	grep -v ${m} ${queue}/info/nice  > ${queue}/info/nice.tmp
 
 	# add new values
-	echo "${m}:${p}" >> ${vardir}/${queue}/info/nproc.tmp
-  echo "${m}:${n}" >> ${vardir}/${queue}/info/nice.tmp
+	echo "${m}:${p}" >> ${queue}/info/nproc.tmp
+	echo "${m}:${n}" >> ${queue}/info/nice.tmp
 
-	mv ${vardir}/${queue}/info/nproc.tmp ${vardir}/${queue}/info/nproc
-	mv ${vardir}/${queue}/info/nice.tmp  ${vardir}/${queue}/info/nice
+	mv ${queue}/info/nproc.tmp ${queue}/info/nproc
+	mv ${queue}/info/nice.tmp  ${queue}/info/nice
 done
   
-IFS=${separator}
+# updating options
+for opt in ${options} ; do
+	key=${opt%=*}
+	# remove previous entries for this option
+	grep -v ${key} ${queue}/info/options > ${queue}/info/options.tmp
+	
+	# add new value
+	echo "${opt}" >> ${queue}/info/options.tmp
 
-sqslock ${vardir}/${queue} ${key} || exit $?
-sqsunlock ${vardir} ${key} || exit $?
+	mv ${queue}/info/options.tmp ${queue}/info/options
+done
 
-separator=$IFS ; IFS=";"
+exit 0

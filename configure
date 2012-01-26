@@ -101,42 +101,42 @@ rm -f $logfile
 # echo %%%  Parsing options
 #
 while [ ${1:q} ]; do
-		case "${1}" in
-				--prefix )
-						shift
-						prefix=${1%/}
-						;;
-				--bindir )
-						shift
-						bindir=${1%/}
-						;;
-				--vardir )
-						shift
-						vardir=${1%/}
-						;;
-				--no-create )
-						noact="yes"
-						;;
-				-h )
-						usage
-						exit
-						;;
-				--help )
-						usage
-						exit
-						;;
-				-* )
-						echo "unknown option '${1}'!"
-						usage
-						exit
-						;;
-				* )
-						echo "unknown argument '${1}'!"
-						usage
-						exit
-						;;
-		esac
-		shift		
+    case "${1}" in
+        --prefix )
+            shift
+            prefix=${1%/}
+            ;;
+        --bindir )
+            shift
+            bindir=${1%/}
+            ;;
+        --vardir )
+            shift
+            vardir=${1%/}
+            ;;
+        --no-create )
+            noact="yes"
+            ;;
+        -h )
+            usage
+            exit
+            ;;
+        --help )
+            usage
+            exit
+            ;;
+        -* )
+            echo "unknown option '${1}'!"
+            usage
+            exit
+            ;;
+        * )
+            echo "unknown argument '${1}'!"
+            usage
+            exit
+            ;;
+    esac
+    shift    
 done
 
 ###################################################################
@@ -186,8 +186,8 @@ if test "x${vardir}" = "x";    then vardir=${prefix}/var/sqs; fi
 #
 if test "x${noact}" = "xyes" ; then
   echo "prefix: ${prefix}"
-	echo "bindir: ${bindir}"
-	echo "vardir: ${vardir}"
+  echo "bindir: ${bindir}"
+  echo "vardir: ${vardir}"
   exit 0
 fi
 

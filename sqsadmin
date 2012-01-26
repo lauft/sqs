@@ -47,9 +47,9 @@ sqs_list() {
   if [ "x${queue}" = "x" ] ; then
     queue="all"
   fi
-
+	
   if [ "x${task}" = "x" ] ; then
-    sqs_list_queue ${queue}
+		sqs_list_queue ${queue}
   else
     sqs_list_task ${queue} ${task}
   fi
@@ -62,8 +62,8 @@ sqs_list_queue() {
   local queue=${1}
 
   case "${queue}" in
-    "all")
-      list=`ls ${vardir}`
+		"all")
+		  list=`ls ${vardir}`
       cnt=`echo ${list} | wc -w`
       
       if [ ${cnt} -eq 0 ] ; then
@@ -242,27 +242,27 @@ sqs_remove_task() {
     "all")
       if query "Really remove all waiting task from queue '${queue}'?" ; then
         echo "Removing all waiting tasks in queue '${queue}'"
-        sqslock ${vardir}/${queue}
-  
-        list=`ls ${vardir}/${queue}/wait/ | sort -n`
-  
-        for tsk in ${list} ; do
-          echo -n "Removing ${tsk}: "
-          cat ${vardir}/${queue}/wait/${tsk}
-          rm ${vardir}/${queue}/wait/${tsk}
-        done
-        sqsunlock ${vardir}/${queue}
+				sqslock ${vardir}/${queue} 'root'
+	
+				list=`ls ${vardir}/${queue}/wait/ | sort -n`
+				
+				for tsk in ${list} ; do
+						echo -n "Removing ${tsk}: "
+						cat ${vardir}/${queue}/wait/${tsk}
+						rm ${vardir}/${queue}/wait/${tsk}
+				done
+				sqsunlock ${vardir}/${queue} 'root'
       fi
       ;;
-    [0-9]*)
-      if query "Really remove waiting task '${task}' from queue '${queue}'?" ; then
-        sqslock ${vardir}/${queue}
-        echo -n "Removing ${task}: "
-        cat ${vardir}/${queue}/wait/${task}
-        rm ${vardir}/${queue}/wait/${task}
-        sqsunlock ${vardir}/${queue}
-      fi
-      ;;
+			[0-9]*)
+					if query "Really remove waiting task '${task}' from queue '${queue}'?" ; then
+							sqslock ${vardir}/${queue} 'root'
+							echo -n "Removing ${task}: "
+							cat ${vardir}/${queue}/wait/${task}
+							rm ${vardir}/${queue}/wait/${task}
+							sqsunlock ${vardir}/${queue} 'root'
+					fi
+					;;
     *)
       echo "sqsadmin: Error, unknown argument '${task}'"
       ;;    
