@@ -16,12 +16,12 @@ tag=${2}
 
 if ! [ -e ${dir}/lockfile/${tag} ] ; then
   # non-matching tag file
-  echo "sqsunlock: Error, cannot unlock dir '${dir}' with tag '${tag}'"
+  echo "sqsunlock (${tag}): Error, cannot unlock dir '${dir}'"
   exit 2
 fi
 
 if [ "x${verbose}" = "xyes" ] ; then
-  echo "sqsunlock: unlocking '${dir}' (${tag})"
+  echo "sqsunlock (${tag}): unlocking '${dir}'"
 fi 
 
 rm -rf ${dir}/lockfile

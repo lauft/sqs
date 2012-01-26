@@ -4,31 +4,52 @@
 # Helper script for the SQS
 # Locks directories to prevent race conditions
 # Locking requires a tag (which can identify the locking process)
+# Optionally a timeout can be set after which the lock try aborts
+# 
+# Returns  0 on success
+#         -1 on timeout
+#          1 on error
 #
 
-if [ $# -ne 2 ] ; then
+if [ $# -lt 2 ] || [ $# -gt 3 ] ; then
   echo "sqslock: wrong argument count! ($*)"
   exit 1
 fi
 
 dir=${1}
 tag=${2}
+try=${3-"-1"}
 
 while true ; do
+  if ! [ -e ${dir} ] ; then
+    echo "sqslock (${tag}): directory '${dir}' does not exist"
+    exit 1
+  fi
+
   mkdir "${dir}/lockfile" 2>/dev/null
+  
   if [ $? -eq 0 ] ; then
     break;
   fi
 
   if [ "x${verbose}" = "xyes" ] ; then
-    echo -en "sqslock: waiting for lock on '${dir}'...\r"
+    echo -en "sqslock (${tag}): waiting for lock on '${dir}'...\r"
+  fi
+
+  if [ ${try} -gt 0 ] ; then
+    ((try--))
+  fi
+
+  if [ ${try} -eq 0 ] ; then
+    echo "sqslock (${tag}): request timed out"
+    exit -1
   fi
 
   sleep 1
 done
 
 if [ "x${verbose}" = "xyes" ] ; then
-  echo "sqslock: locking '${dir}' with '${tag}'"
+  echo "sqslock (${tag}): locking '${dir}'"
 fi
 
 echo "$USER" > ${dir}/lockfile/${tag}
