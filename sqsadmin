@@ -240,7 +240,7 @@ sqs_remove_task() {
     "all")
       if query "Really remove all waiting task from queue '${queue}'?" ; then
         echo "Removing all waiting tasks in queue '${queue}'"
-	sqslock ${vardir}/${queue}
+	sqslock ${vardir}/${queue} 'root'
 	
 	list=`ls ${vardir}/${queue}/wait/ | sort -n`
 	
@@ -249,16 +249,16 @@ sqs_remove_task() {
 	  cat ${vardir}/${queue}/wait/${tsk}
 	  rm ${vardir}/${queue}/wait/${tsk}
 	done
-	sqsunlock ${vardir}/${queue}
+	sqsunlock ${vardir}/${queue} 'root'
       fi
       ;;
     [0-9]*)
       if query "Really remove waiting task '${task}' from queue '${queue}'?" ; then
-	sqslock ${vardir}/${queue}
+	sqslock ${vardir}/${queue} 'root'
         echo -n "Removing ${task}: "
 	cat ${vardir}/${queue}/wait/${task}
 	rm ${vardir}/${queue}/wait/${task}
-	sqsunlock ${vardir}/${queue}
+	sqsunlock ${vardir}/${queue} 'root'
       fi
       ;;
     *)
