@@ -6,16 +6,20 @@
 #
 
 #_______________________________________________________________________________
-sqsr_add_runc()
+sqsr_add_to_runc()
 {
   # add parameter to runner count
+  # helper function used to increment or decrement runner count
+	# if called with parameter 0, current number is returned
   #
   local nrun=$(grep ${host} ${queue}/info/hosts)
   nrun=${nrun#*:}
-  ((nrun=nrun+${1}))
-  grep -v ${host} ${queue}/info/hosts > ${queue}/info/hosts.tmp
-  mv ${queue}/info/hosts.tmp ${queue}/info/hosts
-  echo "${host}:${nrun}" >> ${queue}/info/hosts
+	if [ ${1} -ne 0 ] ; then
+		((nrun=nrun+${1}))
+		grep -v ${host} ${queue}/info/hosts > ${queue}/info/hosts.tmp
+		mv ${queue}/info/hosts.tmp ${queue}/info/hosts
+		echo "${host}:${nrun}" >> ${queue}/info/hosts
+	fi
   echo ${nrun}
   return
 }
@@ -45,173 +49,129 @@ key="${host}.$$"
 sqslock ${queue} ${key} || exit $?
 
 # Increment runner count
-nrun=$(sqsr_add_runc 1)
+nrun=$(sqsr_add_to_runc 1)
 
 if [ "x${verbose}" = "xyes" ] ; then
   echo "sqsrunner ($$): starting runner, ${nrun} runners on ${host}."
 fi
 
-sqsunlock ${queue} ${key} || exit $?
-
-export verbose
-
 while [ true ] ; do
-  sqslock ${queue} ${key} || exit $?
+	# retrieve runner count on host
+	nrun=$(sqsr_add_to_runc 0)
 
-  persist=$(sqsgetopt ${queue} "persist" "no")
-  
-  # retrieve number of waiting tasks
-  ntsk=`ls ${queue}/wait | wc -w`
-
-  # retrieve total number of processes running
-  tproc=`ls ${queue}/proc/ 2>/dev/null | wc -w`
-
-  # retrieve number of processes running on this host
-  nproc=`ls ${queue}/proc/${host}.* 2>/dev/null | wc -w`
-
-  if [ "x${verbose}" = "xyes" ] ; then
-    echo "sqsrunner ($$): wait ${ntsk} total ${tproc} local ${nproc} [${host}]"
-  fi
-
-  # quit if ntsk = 0 and nproc > 0
-  # also close queue if ntsk = 0 and tproc = 0
-  if [ ${ntsk} -eq 0 ] ; then 
-    if [ "x${verbose}" = "xyes" ] ; then
-      echo "sqsrunner ($$): no more tasks in queue '${queue}' [${host}]"
-    fi
-
-    if [ ${nproc} -gt 0 ] ; then
-      sqsunlock ${queue} ${key} || exit $?
-      break
-    fi
-
-    if [ ${tproc} -eq 0 ] ; then
-      if [ "x${verbose}" = "xyes" ] ; then
-        echo "sqsrunner ($$): all processes have finished [${host}]"
-      fi
-
-      if [ "x${persist}" = "xno" ] ; then
-        sqsunlock ${queue} ${key} || exit $?  
-        break
-
-      fi
-    fi
-    
-    sqsunlock ${queue} ${key} || exit $?
-
-    if [ "x${verbose}" = "xyes" ] ; then
-      echo "sqsrunner ($$): ideling [${host}]"
-    fi
-    sleep 1
-    continue
-  fi
-
-  # retrieve number of maximum allowed processes
+	# retrieve number of allowed runners for host
   nmax=`cat ${queue}/info/nproc | grep ${host} | sed "s|^.*:||"`
 
   if [ "x${verbose}" = "xyes" ] ; then
-    echo "sqsrunner ($$): ${nproc} of ${nmax} processes [${host}]"
+    echo "sqsrunner ($$): ${nrun} of ${nmax} processes [${host}]"
   fi
 
-  # add next process to number of running processes
-  ((nproc++))
+	# exit loop if above maximum
+	if [ ${nrun} -gt ${nmax} ] ; then
+		sqsunlock ${queue} ${key} || exit $?
+		break
+	fi
 
-  # fork if nproc < nmax
-  if [ "${nproc}" -lt "${nmax}" ] ; then
-    sqsrunner ${queue} &
+  # retrieve first task from queue
+  tid=`ls ${queue}/wait 2>/dev/null | sort -n | head -n 1`
+  
+  if [ "x${tid}" = "x" ] ; then
+    if [ "x${verbose}" = "xyes" ] ; then
+      echo "sqsrunner ($$): no more tasks in list [${host}]"
+    fi
+
+	  persist=$(sqsgetopt ${queue} "persist" "no")
+	
+		if [ "x${persist}" = "xyes" ] && [ ${nrun} -eq 1 ] ; then
+      sqsunlock ${queue} ${key} || exit $?  	
+			if [ "x${verbose}" = "xyes" ] ; then
+				echo "sqsrunner ($$): ideling [${host}]"
+			fi
+			sleep 1
+			sqslock ${queue} ${key} || exit $?
+			continue
+		fi
+		# exit loop if not a busy queue
+    break
+	fi
+
+	# seed runners if below maximum
+  if [ "${nrun}" -lt "${nmax}" ] ; then
+		sqsrunner ${queue} &
 
     if [ "x${verbose}" = "xyes" ] ; then
       echo "sqsrunner ($$): spawning new sqsrunner ($!) [${host}]"
     fi
-  elif [ "${nproc}" -gt "${nmax}" ] ; then 
-    # quit if nproc > nmax
-    sqsunlock ${queue} ${key} || exit $?
-    break
-  fi
-  
+	fi
+
+	task=`cat ${queue}/wait/${tid}`
+    
   # retrieve nice level of queue for host
-  nlvl=`cat ${queue}/info/nice | grep ${host} | sed "s|^.*:||"`
+	nlvl=`cat ${queue}/info/nice | grep ${host} | sed "s|^.*:||"`
   
-  # retrieve first task from queue
-  tid=`ls ${queue}/wait 2>/dev/null | sort -n | head -n 1`
-  
-  if [ "${tid}" = "" ] ; then
-    if [ "x${verbose}" = "xyes" ] ; then
-      echo "sqsrunner ($$): no more tasks in list [${host}]"
-    fi
-    break
-    sqsunlock ${queue} ${key} || exit $?
-    break
-  fi
+	# move task to exec
+	mv -f ${queue}/wait/${tid} ${queue}/exec/
 
-  task=`cat ${queue}/wait/${tid}`
-  mv -f ${queue}/wait/${tid} ${queue}/exec/
-
-  if [ "x${verbose}" = "xyes" ] ; then
-    echo "sqsrunner ($$): executing task ${tid}: '${task}' [${host}]"
-  fi
-   
+	if [ "x${verbose}" = "xyes" ] ; then
+			echo "sqsrunner ($$): executing task ${tid}: '${task}' [${host}]"
+	fi
+	
   # start task
-  nice -n ${nlvl} ${task} &
-  pid=$!
-
-  echo "${id}" > ${queue}/proc/${host}.${pid}
-
-  sqsunlock ${queue} ${key} || exit $?
-
+	nice -n ${nlvl} ${task} &
+	pid=$!
+	
+	# update proc
+	echo "${id}" > ${queue}/proc/${host}.${pid}
+	
+	sqsunlock ${queue} ${key} || exit $?
+	
   # wait for completion
-  wait ${pid}
-
+	wait ${pid}
+	
   # remove completed task
-  sqslock ${queue} ${key} || exit $?
-  rm -f ${queue}/exec/${tid}
-  rm -f ${queue}/proc/${host}.${pid}
-  sqsunlock ${queue} ${key} || exit $?
+	sqslock ${queue} ${key} || exit $?
+	rm -f ${queue}/exec/${tid}
+	rm -f ${queue}/proc/${host}.${pid}		
 done
 
-sqslock ${queue} ${key} || exit $?
-
 # Decrement runner count
-nrun=$(sqsr_add_runc -1)
+nrun=$(sqsr_add_to_runc -1)
 
 if [ "x${verbose}" = "xyes" ] ; then
-  echo "sqsrunner ($$): exiting runner, ${nrun} runners on ${host}."
+  echo "sqsrunner ($$): exiting runner, runners on ${host}: ${nrun}"
 fi
 
-sqsunlock ${queue} ${key} || exit $?
+persist=$(sqsgetopt ${queue} "persist" "no")
 
-if [ ${nrun} -eq 0 ] ; then
-  master=$(sqsgetopt ${queue} "master" "")
+trun=0;
+for h in $(cat ${queue}/info/hosts) ; do
+	nrun=${h#*:}
+	((trun+=nrun))
+done
 
-  if [ "x${master}" = "x${host}" ] ; then
-    # Close queue if master
-    while [ true ] ; do
-      trun=0;
-      for h in $(cat ${queue}/info/hosts) ; do
-        nrun=${h#*:}
-        ((trun+=nrun))
-      done
-
-      # only close when all other runners have finished.
-      if [ ${trun} -eq 0 ] ; then
-        sqslock ${vardir} ${key} || exit $?
+if [ ${trun} -eq 0 ] ; then
+	if [ "$x${persist}" = "xyes" ] ; then
+		if [ "x${verbose}" = "xyes" ] ; then
+			echo "sqsrunner ($$): leaving queue '${queue}' [${host}]"
+		fi
         
-        if [ "x${verbose}" = "xyes" ] ; then
-          echo "sqsrunner ($$): closing queue '${queue}' [${host}]"
-        fi
-        
-        rm -r ${queue}
-        sqsunlock ${vardir} ${key} || exit $?
-        exit
-      fi
-      
-      if [ "x${verbose}" = "xyes" ] ; then
-        echo "sqsrunner ($$): waiting for slaves [${host}]"
-      fi
-      sleep 1
-      continue
-    done
-  fi
+    sqsunlock ${queue} ${key} || exit $?
+	  exit 0
+	fi
+else
+  sqsunlock ${queue} ${key} || exit $?
+	exit 0
 fi
+
+# try to close queue
+sqslock ${vardir} ${key} || exit $?
+        
+if [ "x${verbose}" = "xyes" ] ; then
+  echo "sqsrunner ($$): closing queue '${queue}' [${host}]"
+fi
+        
+rm -r ${queue}
+sqsunlock ${vardir} ${key} || exit $?
+exit
 
 ### EOF
