@@ -9,8 +9,8 @@
 sqsr_add_to_runc()
 {
   # add parameter to runner count
-  # helper function used to increment or decrement runner count
-	# if called with parameter 0, current number is returned
+  # helper function used to increment or decrement runner count,
+	# current runner count is returned.
   #
   local nrun=$(grep ${host} ${queue}/info/hosts)
   nrun=${nrun#*:}
