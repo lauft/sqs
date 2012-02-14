@@ -31,11 +31,11 @@ $(BINDIR) $(VARDIR):
 
 $(BINDIR)/sqsconfig: sqsconfig
 	@cp -v $< $@
-	@chmod 444 $@	
+	@chmod 644 $@	
 
 $(BINDIR)/%: %
 	@cp -v $< $@	
-	@chmod 555 $@	
+	@chmod 755 $@	
 
 clean:
 	@rm -f Makefile
