@@ -15,7 +15,7 @@
 #
 
 if [ $# -ne 3 ] ; then
-  echo "sqsgetopt: wrong argument count! ($*)"
+  echo "sqsgetopt: wrong argument count! ($*)" > 2
   exit 1
 fi
 
@@ -32,3 +32,5 @@ else
 fi
 
 exit 0
+
+### EOF
