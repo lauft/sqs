@@ -24,7 +24,7 @@ parent=${queue%/*}
 
 sqslock ${parent} ${key} || exit $?
 
-sqslock ${queue} ${key} || { sqsunlock ${parent} ${key}; exit 3 }
+sqslock ${queue} ${key} || { sqsunlock ${parent} ${key} ; exit 3 ; }
 
 rm -rf ${queue}
 
