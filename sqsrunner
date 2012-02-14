@@ -109,11 +109,14 @@ while [ true ] ; do
   # retrieve nice level of queue for host
 	nlvl=`cat ${queue}/info/nice | grep ${host} | sed "s|^.*:||"`
   
+  # retrieve ionice level of queue for host
+	#iolv=`cat ${queue}/info/ionice | grep ${host} | sed "s|^.*:||"`
+
 	# move task to exec
 	mv -f ${queue}/wait/${tid} ${queue}/exec/
 
 	if [ "x${verbose}" = "xyes" ] ; then
-			echo "sqsrunner ($$): executing task ${tid}: '${task}' [${host}]"
+		echo "sqsrunner ($$): executing task ${tid}: '${task}' (nice ${nlvl}) [${host}]"
 	fi
 	
   # start task
@@ -121,7 +124,7 @@ while [ true ] ; do
 	pid=$!
 	
 	# update proc
-	echo "${id}" > ${queue}/proc/${host}.${pid}
+	echo "${tid}" > ${queue}/proc/${host}.${pid}
 	
 	sqsunlock ${queue} ${key} || exit $?
 	
