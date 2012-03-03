@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#
+# Helper script for the SQS
+# Sets a value for an option in <queue>/info/options.
+# Previous entries for this option are overwritten.
+#
+# WARNING: script does not lock <queue>! Locking and release of the
+#          queue has to be done by the caller!
+#
+# 1 = queue name
+# 2 = key
+# 3 = value
+#
+
+if [ $# -ne 3 ] ; then
+  echo "sqssetopt: wrong argument count! ($*)"
+  exit 1
+fi
+
+queue=${1}
+key=${2}
+value=${3}
+
+grep -v ${key} ${queue}/info/options > ${queue}/info/options.tmp
+echo "${key}=${value}" >> ${queue}/info/options.tmp
+mv ${queue}/info/options.tmp ${queue}/info/options
+
+exit 0
+
+### EOF
