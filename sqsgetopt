@@ -11,7 +11,8 @@
 # 2 = key to be queried
 # 3 = default value
 #
-# The found key or the default value is returned to stdout
+# The value associated to the key or the given default value 
+# is returned to stdout
 #
 
 if [ $# -ne 3 ] ; then
@@ -32,3 +33,5 @@ else
 fi
 
 exit 0
+
+### EOF
