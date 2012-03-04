@@ -43,7 +43,7 @@ if ! [ -e ${queue} ] ; then
     exit 2
 fi
 
-host=`hostname`
+host=$(hostname)
 key="${host}.$$"
 
 sqslock ${queue} ${key} || exit $?
