@@ -35,158 +35,124 @@ COMMANDS
   create QUEUE        Create a new (persistent) queue QUEUE
 EOF
 }
-
 #_______________________________________________________________________________
 sqs_list() {
   # helper function for listing
   # list all queues, if no queue specified
   # 
   local queue=${1}
-  local task=${2}
-    
+
   if [ "x${queue}" = "x" ] ; then
-    queue="all"
+	  list=$(ls ${vardir})
+    cnt=$(echo ${list} | wc -w | sed -e "s| ||g")
+      
+    if [ ${cnt} -eq 0 ] ; then
+      echo "No queues in system."
+      return
+    fi
+      
+    echo "${cnt} queue(s) in total:"
+		for que in ${list} ; do
+			sqs_list_queue ${que}
+    done
+		
+		return
+  fi
+
+  if ! [ -e "${vardir}/${queue}" ] ; then
+    echo "sqsadmin: Error, queue '${queue}' does not exist"
+    return
   fi
 	
-  if [ "x${task}" = "x" ] ; then
-		sqs_list_queue ${queue}
-  else
-    sqs_list_task ${queue} ${task}
-  fi
+	sqs_list_queue $*
+
 } # sqs_list
 
 #_______________________________________________________________________________
 sqs_list_queue() {
-  # show overview of queue(s)
+  # show contents of a folder in a queue
+  # list short description of all folders, if no folder specified
   #
   local queue=${1}
+	local folder=${2}
+	local item=${3}
 
-  case "${queue}" in
-		"all")
-		  list=`ls ${vardir}`
-      cnt=`echo ${list} | wc -w`
-      
-      if [ ${cnt} -eq 0 ] ; then
-        echo "no queues in system."
-        return
-      fi
-      
-      echo "${cnt} queue(s) in total"
-    
-      for que in ${list} ; do
-        ecnt=`ls ${vardir}/${que}/exec | wc -w`
-        pcnt=`ls ${vardir}/${que}/proc | wc -w`
-        mprc=`cat ${vardir}/${que}/info/nproc`
-        wcnt=`ls ${vardir}/${que}/wait | wc -w`
-        echo "${que}: exec ${ecnt} wait ${wcnt} proc ${pcnt}/${mprc}"
-      done
-      ;;
-    *)
-      if ! [ -e "${vardir}/${queue}" ] ; then
-        echo "sqsadmin: Error, queue '${queue}' does not exist"
-        return
-      fi
-      
-      ecnt=`ls ${vardir}/${queue}/exec | wc -l`
-      wcnt=`ls ${vardir}/${queue}/wait | wc -l`
-      pcnt=`ls ${vardir}/${queue}/proc | wc -w`
-      mprc=`cat ${vardir}/${queue}/info/nproc`
-      ((tcnt = ecnt+wcnt))
-      
-      echo "${pcnt}/${mprc} processes"
-      echo "${ecnt} task(s) excecuting"
-      echo "${wcnt} task(s) waiting"
-      echo "${tcnt} task(s) in total"
-      ;;
-  esac    
+	if [ "x${folder}" = "x" ] ; then
+		ecnt=$(ls ${vardir}/${queue}/exec | wc -l | sed -e "s| ||g")
+    wcnt=$(ls ${vardir}/${queue}/wait | wc -l | sed -e "s| ||g")
+    pcnt=$(ls ${vardir}/${queue}/proc | wc -w | sed -e "s| ||g")
+    ((tcnt=ecnt+wcnt))
+    echo "'${queue}': total ${tcnt}, exec ${ecnt}, wait ${wcnt}, proc ${pcnt}"
+		return
+	fi
+
+	if [ -e ${vardir}/${queue}/${folder} ] ; then
+    cnt=$(ls ${vardir}/${queue}/${folder} | wc -w | sed -e "s| ||g")
+		
+		case "${folder}" in
+			"exec" )
+			  if [ ${cnt} -eq 0 ] ; then
+				  echo "Queue '${queue}' is not executing any tasks"
+					return
+				fi    
+				echo "Queue '${queue}' is executing ${cnt} task(s):"
+				;;
+		  "wait" )
+				if [ ${cnt} -eq 0 ] ; then
+					echo "No waiting tasks in queue '${queue}'"
+					return
+				fi
+				echo "${cnt} task(s) waiting in queue '${queue}':"
+				;;
+			"proc" )
+			  if [ ${cnt} -eq 0 ] ; then
+				  echo "No processes in queue '${queue}'"
+				  return
+			  fi
+				echo "Queue '${queue}' has ${cnt} process(es):"   
+				;;
+		esac
+		
+		sqs_list_queue_item $*
+		return
+	fi
+
+	echo "sqsadmin: Error, invalid folder '${folder}'. Must be (exec|wait|proc)!"
+	
 } # sqs_list_queue
 
 #_______________________________________________________________________________
-sqs_list_task() {
-  # list tasks in queue
+sqs_list_queue_item() {
+  # list items in folder exec/wait/proc.
+  # if no item(s) specified, list all available in folder
   #
-  local queue=${1}
-  local task=${2}
-  
-  if ! [ -e ${vardir}/${queue} ] ; then
-      echo "No queue '${queue}' in system"
-      return
-  fi
-  
-  case "${task}" in
-    "first")
-      first=`ls ${vardir}/${queue}/wait/ | sort -n | head -n 1`
-      echo -n "${first}: "
-      cat "${vardir}/${queue}/wait/${first}"
-      ;;
-    "last")
-      last=`ls ${vardir}/${queue}/wait/ | sort -n | tail -n 1`
-      echo -n "${last}: "
-      cat "${vardir}/${queue}/wait/${last}"
-      ;;
-    "all")
-      echo "Listing all tasks in queue '${queue}'"
-      list=`ls ${vardir}/${queue}/exec | sort -n`
-      
-      echo "Currently executing:"
-      for tsk in ${list} ; do
-        echo -n "${tsk}: "
-        cat ${vardir}/${queue}/exec/${tsk}
-      done
-      
-      list=`ls ${vardir}/${queue}/wait | sort -n`
-      
-      echo "Waiting tasks:"
-      for tsk in ${list} ; do
-        echo -n "${tsk}: "
-        cat ${vardir}/${queue}/wait/${tsk}
-      done
-      ;;
-    "proc")
-      list=`ls ${vardir}/${queue}/proc | sort -n`
-      
-      echo "Listing all processes"
-      for prc in ${list} ; do
-        echo -n "${prc}: "
-        cat ${vardir}/${queue}/proc/${prc}
-      done     
-      ;;
-    "exec")
-      list=`ls ${vardir}/${queue}/exec | sort -n`
-      
-      echo "Currently executing:"
-      for tsk in ${list} ; do
-        echo -n "${tsk}: "
-        cat ${vardir}/${queue}/exec/${tsk}
-      done
-      ;;
-    "wait")
-      list=`ls ${vardir}/${queue}/wait | sort -n`
-      
-      echo "Waiting tasks:"
-      for tsk in ${list} ; do
-        echo -n "${tsk}: "
-        cat ${vardir}/${queue}/wait/${tsk}
-      done
-      ;;
-    [0-9]*)
-      if [ -e ${vardir}/${queue}/wait/${task} ] ; then
-        echo -n "${task}: "
-        cat ${vardir}/${queue}/wait/${task}
-      elif [ -e ${vardir}/${queue}/exec/${task} ] ; then
-        echo -n "${task}: "
-        cat ${vardir}/${queue}/exec/${task}
-        echo "(running)"
-      else
-        echo "there is no task '${task}' in queue '${queue}'"
-      fi
-      ;;
-    *)
-      echo "sqsadmin: Error, unknown argument '${task}'"
-      ;;    
-  esac
-} # sqs_list_task
+  local queue=${1}; shift
+	local folder=${1}; shift
+  local list=$*
 
+	if [ "x${list}" = "x" ] ; then
+    list=$(ls ${vardir}/${queue}/${folder} | sort -n)
+	fi
+ 
+	for item in ${list} ; do
+    case "${item}" in
+      "first")
+        item=$(ls ${vardir}/${queue}/wait/ | sort -n | head -n 1)
+				sqs_list_queue_item ${queue} ${folder} ${item}
+				;;
+			"last")
+				item=$(ls ${vardir}/${queue}/wait/ | sort -n | tail -n 1)
+				sqs_list_queue_item ${queue} ${folder} ${item}
+				;;
+      *)
+        if [ -e ${vardir}/${queue}/${folder}/${item} ] ; then
+          echo -n "${item}: "
+					cat ${vardir}/${queue}/${folder}/${item}
+				fi
+				;;
+		esac
+	done
+} # sqs_list_queue_item
 #_______________________________________________________________________________
 sqs_remove() {
   # helper function for remove
@@ -268,7 +234,6 @@ sqs_remove_task() {
       ;;    
   esac
 } # sqs_remove_task
-
 #_______________________________________________________________________________
 sqs_create() {
   # Create a new persistent queue.
@@ -330,7 +295,6 @@ sqs_stop() {
 	echo "sqsadmin: stop command not yet implemented"
 
 } # sqs_stop
-
 #_______________________________________________________________________________
 query() {
   # Helper Q/A-function
@@ -365,6 +329,11 @@ case "${1}" in
     shift
     sqs_remove $*
     ;;
+  "kill")
+    echo "sqsadmin: Error, command '${1}' not yet implemented"
+    #shift
+    #sqs_kill $*
+    ;;
   "create" | "c")
     shift
     sqs_create $*
@@ -373,7 +342,7 @@ case "${1}" in
     shift
     sqs_close $*
 		;;
-	"start")
+	"start" | "continue" )
     shift
     sqs_start $*
 		;;
@@ -391,29 +360,11 @@ case "${1}" in
     #shift
     #sqs_unlock $*
     ;;
-  "start")
-    echo "sqsadmin: Error, command '${1}' not yet implemented"
-    #shift
-		#sqs_start $*
-		;;
-  "stop")
-    echo "sqsadmin: Error, command '${1}' not yet implemented"
-    #shift
-    #sqs_stop $*
-    ;;
-  "continue")
-    echo "sqsadmin: Error, command '${1}' not yet implemented"
-    #shift
-    #sqs_continue $*
-    ;;
-  "kill")
-    echo "sqsadmin: Error, command '${1}' not yet implemented"
-    #shift
-    #sqs_kill $*
-    ;;
   *)
     echo "sqsadmin: Error, unknown command '${1}'"
     print_usage
     exit
     ;;
 esac
+
+### EOF
