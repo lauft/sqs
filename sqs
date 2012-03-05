@@ -4,10 +4,10 @@ source sqsconfig
 
 queue=""
 master="no"
-dryrun="no"
+#dryrun="no"
 targets=""
 call=""
-verbose="no"
+#verbose="no"
 host=$(hostname)
 
 #_______________________________________________________________________________
@@ -248,7 +248,9 @@ if ! which ${call%% *} >/dev/null 2>&1 ; then
 fi
 
 # export verbosity
-export verbose
+if [ "x${verbose}" != "x" ] ; then
+  export verbose
+fi
 
 # generate lock key
 key="${host}.$$"
