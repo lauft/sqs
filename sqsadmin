@@ -265,7 +265,9 @@ sqs_remove_task_noquery() {
 	cat ${vardir}/${queue}/wait/${task}
 	rm ${vardir}/${queue}/wait/${task}
 
-} # sqs_remove_task_noquery#_______________________________________________________________________________
+} # sqs_remove_task_noquery
+
+#_______________________________________________________________________________
 sqs_kill() {
   # helper function for remove
   # remove only applies to waiting tasks!
@@ -358,14 +360,14 @@ sqs_kill_task_noquery() {
 	local queue=${1}
 	local task=${2}
 
-	echo -n "Would now kill ${task}: "
-	cat ${vardir}/${queue}/exec/${task}
 	process=$(grep --files-with-matches ${task} ${vardir}/${queue}/proc/*)
 	process=${process##*/}
 	process=${process##*.}
-	echo "Sending kill signal to PID ${process}"
+	echo "Kill task id ${task}: Sending kill signal to PID ${process}"
 	kill -9 ${process}
-} # sqs_kill_task_noquery#_______________________________________________________________________________
+} # sqs_kill_task_noquery
+
+#_______________________________________________________________________________
 sqs_create() {
   # Create a new persistent queue.
   # The queue is only created, not started.
@@ -377,7 +379,7 @@ sqs_create() {
     return
   fi
 
-  sqs --queue ${queue} --create-only --persistent --verbose
+  sqs --queue ${queue} --create-only --persist --verbose
 
 } # sqs_create
 
