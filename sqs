@@ -71,10 +71,10 @@ add_to_hostlist() {
   host ${1} >/dev/null 2>&1 || return 12
 
   # check process limit
-  [[ ${2} =~ "\."|[[:digit:]] ]] || return 13
+  [[ ${2} =~ "."|[[:digit:]] ]] || return 13
 
   # check nice level
-  [[ ${3} =~ "\."|[-]?[[:digit:]] ]] || return 14
+  [[ ${3} =~ "."|[-]?[[:digit:]] ]] || return 14
 
   local mm=${1}
   local pp=${2}
@@ -178,7 +178,7 @@ while [ ${1:q} ]; do
           p=${1#*:}; p=${p%:*}
           n=${1##*:}
           ;;
-	*:[[:digit:]]*  )
+        *:[[:digit:]]*  )
           m=${1%:*}
           p=${1#*:}
           n="."
@@ -209,9 +209,9 @@ while [ ${1:q} ]; do
       options="${options} master= persist=yes"
       ;;
     --create-only )
-			createonly="yes"
-		  ;;
-		--persistent )
+      createonly="yes"
+      ;;
+    --persistent )
       persistent="yes"
       ;;
     --logfile )
