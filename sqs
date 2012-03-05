@@ -206,28 +206,21 @@ while [ ${1:q} ]; do
       read_config ${1} || exit $?
       ;;
     --persist )
-      options="${options} master= persist=yes"
+      options="${options} persist=yes"
       ;;
     --create-only )
 			createonly="yes"
 		  ;;
-		--persistent )
-      persistent="yes"
-      ;;
-    --logfile )
-      echo "logfile option not yet supported!"
-      ;;
     --dry-run )
       dryrun="yes"
       ;;
     --verbose )
       verbose="yes"
       ;;
-    -h )
-      usage
-      exit
+    --logfile )
+      echo "logfile option not yet supported!"
       ;;
-    --help )
+    --help | -h )
       usage
       exit
       ;;
@@ -307,10 +300,6 @@ fi
 
 # Creating/updating queue
 sqsupdate "${vardir}/${queue}" "${hostlist}" "${options}" || exit $?
-
-if [ "x${persistent}" = "xyes" ] ; then
-  touch ${vardir}/${queue}/info/persistent
-fi
 
 sqslock ${vardir}/${queue} ${key} || exit $?
 sqsunlock ${vardir} ${key} || exit $?
