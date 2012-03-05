@@ -58,7 +58,7 @@ sqs_list() {
   local queue=${1}
 
   if [ "x${queue}" = "x" ] ; then
-	  list=$(ls ${vardir})
+    list=$(ls ${vardir})
     cnt=$(echo ${list} | wc -w | sed -e "s| ||g")
       
     if [ ${cnt} -eq 0 ] ; then
@@ -67,19 +67,19 @@ sqs_list() {
     fi
       
     echo "${cnt} queue(s) in total:"
-		for que in ${list} ; do
-			sqs_list_queue ${que}
+    for que in ${list} ; do
+      sqs_list_queue ${que}
     done
-		
-		return
+    
+    return
   fi
 
   if ! [ -e "${vardir}/${queue}" ] ; then
     echo "sqsadmin: Error, queue '${queue}' does not exist"
     return
   fi
-	
-	sqs_list_queue $*
+  
+  sqs_list_queue $*
 
 } # sqs_list
 
@@ -89,51 +89,57 @@ sqs_list_queue() {
   # list short description of all folders, if no folder specified
   #
   local queue=${1}
-	local folder=${2}
-	local item=${3}
+  local folder=${2}
 
-	if [ "x${folder}" = "x" ] ; then
-		ecnt=$(ls ${vardir}/${queue}/exec | wc -l | sed -e "s| ||g")
+  if [ "x${folder}" = "x" ] ; then
+    ecnt=$(ls ${vardir}/${queue}/exec | wc -l | sed -e "s| ||g")
     wcnt=$(ls ${vardir}/${queue}/wait | wc -l | sed -e "s| ||g")
     pcnt=$(ls ${vardir}/${queue}/proc | wc -w | sed -e "s| ||g")
     ((tcnt=ecnt+wcnt))
     echo "'${queue}': total ${tcnt}, exec ${ecnt}, wait ${wcnt}, proc ${pcnt}"
-		return
-	fi
+    return
+  fi
 
-	if [ -e ${vardir}/${queue}/${folder} ] ; then
+  if [ "${folder}" = "all" ] ; then
+    sqs_list_queue ${queue} "proc"
+    sqs_list_queue ${queue} "exec"
+    sqs_list_queue ${queue} "wait"
+    return
+  fi
+
+  if [ -e ${vardir}/${queue}/${folder} ] ; then
     cnt=$(ls ${vardir}/${queue}/${folder} | wc -w | sed -e "s| ||g")
-		
-		case "${folder}" in
-			"exec" )
-			  if [ ${cnt} -eq 0 ] ; then
-				  echo "Queue '${queue}' is not executing any tasks"
-					return
-				fi    
-				echo "Queue '${queue}' is executing ${cnt} task(s):"
-				;;
-		  "wait" )
-				if [ ${cnt} -eq 0 ] ; then
-					echo "No waiting tasks in queue '${queue}'"
-					return
-				fi
-				echo "${cnt} task(s) waiting in queue '${queue}':"
-				;;
-			"proc" )
-			  if [ ${cnt} -eq 0 ] ; then
-				  echo "No processes in queue '${queue}'"
-				  return
-			  fi
-				echo "Queue '${queue}' has ${cnt} process(es):"   
-				;;
-		esac
-		
-		sqs_list_queue_item $*
-		return
-	fi
+    
+    case "${folder}" in
+      "exec" )
+        if [ ${cnt} -eq 0 ] ; then
+          echo "Queue '${queue}' is not executing any tasks"
+          return
+        fi    
+        echo "Queue '${queue}' is executing ${cnt} task(s):"
+        ;;
+      "wait" )
+        if [ ${cnt} -eq 0 ] ; then
+          echo "No waiting tasks in queue '${queue}'"
+          return
+        fi
+        echo "${cnt} task(s) waiting in queue '${queue}':"
+        ;;
+      "proc" )
+        if [ ${cnt} -eq 0 ] ; then
+          echo "No processes in queue '${queue}'"
+          return
+        fi
+        echo "Queue '${queue}' has ${cnt} process(es):"   
+        ;;
+    esac
+    
+    sqs_list_queue_item $*
+    return
+  fi
 
-	echo "sqsadmin: Error, invalid folder '${folder}'. Must be (exec|wait|proc)!"
-	
+  echo "sqsadmin: Error, invalid folder '${folder}'. Must be (exec|wait|proc)!"
+  
 } # sqs_list_queue
 
 #_______________________________________________________________________________
@@ -142,31 +148,31 @@ sqs_list_queue_item() {
   # if no item(s) specified, list all available in folder
   #
   local queue=${1}; shift
-	local folder=${1}; shift
+  local folder=${1}; shift
   local list=$*
 
-	if [ "x${list}" = "x" ] ; then
+  if [ "x${list}" = "x" ] ; then
     list=$(ls ${vardir}/${queue}/${folder} | sort -n)
-	fi
+  fi
  
-	for item in ${list} ; do
+  for item in ${list} ; do
     case "${item}" in
       "first")
         item=$(ls ${vardir}/${queue}/wait/ | sort -n | head -n 1)
-				sqs_list_queue_item ${queue} ${folder} ${item}
-				;;
-			"last")
-				item=$(ls ${vardir}/${queue}/wait/ | sort -n | tail -n 1)
-				sqs_list_queue_item ${queue} ${folder} ${item}
-				;;
+        sqs_list_queue_item ${queue} ${folder} ${item}
+        ;;
+      "last")
+        item=$(ls ${vardir}/${queue}/wait/ | sort -n | tail -n 1)
+        sqs_list_queue_item ${queue} ${folder} ${item}
+        ;;
       *)
         if [ -e ${vardir}/${queue}/${folder}/${item} ] ; then
           echo -n "${item}: "
-					cat ${vardir}/${queue}/${folder}/${item}
-				fi
-				;;
-		esac
-	done
+          cat ${vardir}/${queue}/${folder}/${item}
+        fi
+        ;;
+    esac
+  done
 } # sqs_list_queue_item
 #_______________________________________________________________________________
 sqs_remove() {
@@ -180,10 +186,10 @@ sqs_remove() {
     return
   fi
 
-	if [ -e ${vardir}/${queue} ] ; then
+  if [ -e ${vardir}/${queue} ] ; then
     sqs_remove_queue ${*}
   else
-	  echo "sqsadmin: Error, queue '${queue}' does not exist!"
+    echo "sqsadmin: Error, queue '${queue}' does not exist!"
   fi
 } # sqs_remove
 
@@ -192,14 +198,14 @@ sqs_remove_queue() {
   # remove tasks from queue
   #
   local queue=${1}; shift
-	local task=${*}
+  local task=${*}
 
   if [ "x${task}" = "x" ] ; then
-	   # remove all waiting tasks from queue
-		 task="all"
+     # remove all waiting tasks from queue
+     task="all"
   fi
-	
-	sqs_remove_task ${queue} ${task}
+  
+  sqs_remove_task ${queue} ${task}
 
 } # sqs_remove_queue
 
@@ -210,47 +216,47 @@ sqs_remove_task() {
   local queue=${1}; shift
   local list=${*}
 
-	for task in ${list} ; do
+  for task in ${list} ; do
     case "${task}" in
       "first")
-				task=$(ls ${vardir}/${queue}/wait/ | sort -n | head -n 1)
+        task=$(ls ${vardir}/${queue}/wait/ | sort -n | head -n 1)
         if query "Remove first waiting task (id=${task}) from queue '${queue}'?" ; then
-					sqs_remove_task_noquery ${queue} ${task}
-				fi
-				;;
-			"last")
-				task=$(ls ${vardir}/${queue}/wait/ | sort -n | tail -n 1)
+          sqs_remove_task_noquery ${queue} ${task}
+        fi
+        ;;
+      "last")
+        task=$(ls ${vardir}/${queue}/wait/ | sort -n | tail -n 1)
         if query "Remove last waiting task (id=${task}) from queue '${queue}'?" ; then
-					sqs_remove_task_noquery ${queue} ${task}
-				fi
-				;;
+          sqs_remove_task_noquery ${queue} ${task}
+        fi
+        ;;
       "all")
-				if query "Remove all waiting task from queue '${queue}'?" ; then
-				  sqslock ${vardir}/${queue} 'root'
-					tsklist=`ls ${vardir}/${queue}/wait/ | sort -n`		
-					for tsk in ${tsklist} ; do
-					  sqs_remove_task_noquery ${queue} ${tsk}	
-					done
-					sqsunlock ${vardir}/${queue} 'root'
-					return
-				fi
-				;;
-			[0-9]*)
+        if query "Remove all waiting task from queue '${queue}'?" ; then
+          sqslock ${vardir}/${queue} 'root'
+          tsklist=`ls ${vardir}/${queue}/wait/ | sort -n`    
+          for tsk in ${tsklist} ; do
+            sqs_remove_task_noquery ${queue} ${tsk}  
+          done
+          sqsunlock ${vardir}/${queue} 'root'
+          return
+        fi
+        ;;
+      [0-9]*)
         if [ ! -e ${vardir}/${queue}/wait/${task} ] ; then
           echo "sqsadmin: Error, no waiting task with id ${task}!"
-					continue
-				fi
-				if query "Remove waiting task ${task} from queue '${queue}'?" ; then
-					sqslock ${vardir}/${queue} 'root'
-					sqs_remove_task_noquery ${queue} ${task}
-					sqsunlock ${vardir}/${queue} 'root'
-				fi
-				;;
-			*)
+          continue
+        fi
+        if query "Remove waiting task ${task} from queue '${queue}'?" ; then
+          sqslock ${vardir}/${queue} 'root'
+          sqs_remove_task_noquery ${queue} ${task}
+          sqsunlock ${vardir}/${queue} 'root'
+        fi
+        ;;
+      *)
         echo "sqsadmin: Error, unknown argument '${task}'"
-				;;    
-		esac
-	done
+        ;;    
+    esac
+  done
 } # sqs_remove_task
 
 #_______________________________________________________________________________
@@ -258,12 +264,12 @@ sqs_remove_task_noquery() {
   # Helper function
   # Function does not lock queue, this has to be done by the calling function!
   #
-	local queue=${1}
-	local task=${2}
+  local queue=${1}
+  local task=${2}
 
-	echo -n "Removing ${task}: "
-	cat ${vardir}/${queue}/wait/${task}
-	rm ${vardir}/${queue}/wait/${task}
+  echo -n "Removing ${task}: "
+  cat ${vardir}/${queue}/wait/${task}
+  rm ${vardir}/${queue}/wait/${task}
 
 } # sqs_remove_task_noquery#_______________________________________________________________________________
 sqs_kill() {
@@ -277,10 +283,10 @@ sqs_kill() {
     return
   fi
 
-	if [ -e ${vardir}/${queue} ] ; then
+  if [ -e ${vardir}/${queue} ] ; then
     sqs_kill_queue ${*}
   else
-	  echo "sqsadmin: Error, queue '${queue}' does not exist!"
+    echo "sqsadmin: Error, queue '${queue}' does not exist!"
   fi
 } # sqs_kill
 
@@ -289,14 +295,14 @@ sqs_kill_queue() {
   # kill tasks in queue
   #
   local queue=${1}; shift
-	local task=${*}
+  local task=${*}
 
   if [ "x${task}" = "x" ] ; then
-	   # kill all currently executed tasks in queue
-		 task="all"
+     # kill all currently executed tasks in queue
+     task="all"
   fi
-	
-	sqs_kill_task ${queue} ${task}
+  
+  sqs_kill_task ${queue} ${task}
 
 } # sqs_kill_queue
 
@@ -307,47 +313,47 @@ sqs_kill_task() {
   local queue=${1}; shift
   local list=${*}
 
-	for task in ${list} ; do
+  for task in ${list} ; do
     case "${task}" in
       "first")
-				task=$(ls ${vardir}/${queue}/exec/ | sort -n | head -n 1)
+        task=$(ls ${vardir}/${queue}/exec/ | sort -n | head -n 1)
         if query "Kill first task (id=${task}) in queue '${queue}'?" ; then
-					sqs_kill_task_noquery ${queue} ${task}
-				fi
-				;;
-			"last")
-				task=$(ls ${vardir}/${queue}/exec/ | sort -n | tail -n 1)
+          sqs_kill_task_noquery ${queue} ${task}
+        fi
+        ;;
+      "last")
+        task=$(ls ${vardir}/${queue}/exec/ | sort -n | tail -n 1)
         if query "Kill last task (id=${task}) in queue '${queue}'?" ; then
-					sqs_kill_task_noquery ${queue} ${task}
-				fi
-				;;
+          sqs_kill_task_noquery ${queue} ${task}
+        fi
+        ;;
       "all")
-				if query "Kill all tasks in queue '${queue}'?" ; then
-				  sqslock ${vardir}/${queue} 'root'
-					tsklist=`ls ${vardir}/${queue}/exec/ | sort -n`		
-					for tsk in ${tsklist} ; do
-					  sqs_kill_task_noquery ${queue} ${tsk}	
-					done
-					sqsunlock ${vardir}/${queue} 'root'
-					return
-				fi
-				;;
-			[0-9]*)
+        if query "Kill all tasks in queue '${queue}'?" ; then
+          sqslock ${vardir}/${queue} 'root'
+          tsklist=`ls ${vardir}/${queue}/exec/ | sort -n`    
+          for tsk in ${tsklist} ; do
+            sqs_kill_task_noquery ${queue} ${tsk}  
+          done
+          sqsunlock ${vardir}/${queue} 'root'
+          return
+        fi
+        ;;
+      [0-9]*)
         if [ ! -e ${vardir}/${queue}/exec/${task} ] ; then
           echo "sqsadmin: Error, no task with id ${task}!"
-					continue
-				fi
-				if query "Kill task ${task} from queue '${queue}'?" ; then
-					sqslock ${vardir}/${queue} 'root'
-					sqs_kill_task_noquery ${queue} ${task}
-					sqsunlock ${vardir}/${queue} 'root'
-				fi
-				;;
-			*)
+          continue
+        fi
+        if query "Kill task ${task} from queue '${queue}'?" ; then
+          sqslock ${vardir}/${queue} 'root'
+          sqs_kill_task_noquery ${queue} ${task}
+          sqsunlock ${vardir}/${queue} 'root'
+        fi
+        ;;
+      *)
         echo "sqsadmin: Error, unknown argument '${task}'"
-				;;    
-		esac
-	done
+        ;;    
+    esac
+  done
 } # sqs_kill_task
 
 #_______________________________________________________________________________
@@ -355,16 +361,16 @@ sqs_kill_task_noquery() {
   # Helper function
   # Function does not lock queue, this has to be done by the calling function!
   #
-	local queue=${1}
-	local task=${2}
+  local queue=${1}
+  local task=${2}
 
-	echo -n "Would now kill ${task}: "
-	cat ${vardir}/${queue}/exec/${task}
-	process=$(grep --files-with-matches ${task} ${vardir}/${queue}/proc/*)
-	process=${process##*/}
-	process=${process##*.}
-	echo "Sending kill signal to PID ${process}"
-	kill -9 ${process}
+  echo -n "Would now kill ${task}: "
+  cat ${vardir}/${queue}/exec/${task}
+  process=$(grep --files-with-matches ${task} ${vardir}/${queue}/proc/*)
+  process=${process##*/}
+  process=${process##*.}
+  echo "Sending kill signal to PID ${process}"
+  kill -9 ${process}
 } # sqs_kill_task_noquery#_______________________________________________________________________________
 sqs_create() {
   # Create a new persistent queue.
@@ -391,9 +397,9 @@ sqs_close() {
     echo "sqsadmin: Error, specify queue!"
     return
   fi
-	
-	sqsclose ${vardir}/${queue}
-	
+  
+  sqsclose ${vardir}/${queue}
+  
 } # sqs_close
 
 #_______________________________________________________________________________
@@ -407,7 +413,7 @@ sqs_start() {
     return
   fi
 
-	echo "sqsadmin: start command not yet implemented"
+  echo "sqsadmin: start command not yet implemented"
 
 } # sqs_start
 
@@ -422,7 +428,7 @@ sqs_stop() {
     return
   fi
 
-	echo "sqsadmin: stop command not yet implemented"
+  echo "sqsadmin: stop command not yet implemented"
 
 } # sqs_stop
 #_______________________________________________________________________________
@@ -446,7 +452,7 @@ case "${1}" in
     sqs_remove $*
     ;;
   "kill")
-	  shift
+    shift
     sqs_kill $*
     ;;
   "create" | "c")
@@ -456,15 +462,15 @@ case "${1}" in
   "close")
     shift
     sqs_close $*
-		;;
-	"start" | "continue" )
+    ;;
+  "start" | "continue" )
     shift
     sqs_start $*
-		;;
+    ;;
   "stop")
-		shift
-		sqs_stop $*
-		;;
+    shift
+    sqs_stop $*
+    ;;
   "lock")
     echo "sqsadmin: Error, command '${1}' not yet implemented"
     #shift
