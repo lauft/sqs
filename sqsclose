@@ -1,0 +1,35 @@
+#!/bin/bash
+
+#
+# Helper script for the SQS
+# Closes (i.e. removes) the given queue
+#
+# 1 = queue name
+#
+
+if [ $# -ne 1 ] ; then
+  echo "sqsclose: wrong argument count! ($*)"
+  exit 1
+fi
+
+key="$(hostname).$$"
+queue=${1%/}
+
+if ! [ -e ${queue} ] ; then
+  echo "sqsclose: queue '${queue}' does not exist"
+  exit 2
+fi
+
+parent=${queue%/*}
+
+sqslock ${parent} ${key} || exit $?
+
+sqslock ${queue} ${key} || { sqsunlock ${parent} ${key} ; exit 3 ; }
+
+rm -rf ${queue}
+
+sqsunlock ${parent} ${key} || exit $?
+
+exit 0
+
+### EOF
