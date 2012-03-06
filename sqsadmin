@@ -18,13 +18,15 @@ USAGE
 
 COMMANDS
   list                Show list of queues
-  list QUEUE          Show list of tasks in queue QUEUE.
-  list QUEUE TASK     Show task TASK
+  list QUEUE          Show short description of queue QUEUE
+  list QUEUE FOLDER   Show all items in folder FOLDER (wait|exec|proc|all)
+  list QUEUE FOLDER ITEM
+                      Show item ITEM in folder FOLDER
 
-  remove QUEUE TASK   Remove task number TASK from queue QUEUE.
-  remove QUEUE all    Remove all tasks from queue QUEUE
-  remove QUEUE first  Remove first task from queue QUEUE
-  remove QUEUE last   Remove last task from queue QUEUE
+  remove QUEUE TASK   Remove waiting task id TASK from queue QUEUE
+  remove QUEUE all    Remove all waiting tasks from queue QUEUE
+  remove QUEUE first  Remove first waiting task from queue QUEUE
+  remove QUEUE last   Remove last waiting task from queue QUEUE
 
   kill QUEUE TASK     Kill processing task number TASK from queue QUEUE
   kill QUEUE all      Kill all processing tasks from queue QUEUE
@@ -33,6 +35,9 @@ COMMANDS
   renice QUEUE        Set nice level for queue QUEUE
 
   create QUEUE        Create a new (persistent) queue QUEUE
+  set QUEUE HOST PRM VAL   
+                      Set value of PRM (nproc|nice|ionice) for host HOST
+                      in queue QUEUE to VAL
 EOF
 }
 
@@ -435,6 +440,65 @@ sqs_stop() {
 } # sqs_stop
 
 #_______________________________________________________________________________
+sqs_set() {
+  # Set value in file for given host in queue to specified value
+  # The file is most likely one of (nproc|nice|ionice), however
+  # this is not limited to this. It can be any file located in 
+  # the info folder of the queue
+  #
+  if [ $# -ne 4 ] ; then
+    echo "sqsadmin: Error, wrong argument count!"
+    return
+  fi
+
+  local queue=${1}
+  local host=${2}
+  local file=${3}
+  local new=${4}
+
+  if [ "x${queue}" = "x" ] ; then
+    echo "sqsadmin: Error, specify queue!"
+    return
+  fi
+
+  if [ ! -e ${vardir}/${queue} ] ; then
+    echo "sqsadmin: Error, queue '${queue}' does not exist!"
+    return
+  fi
+  
+  if ! grep ${host} ${vardir}/${queue}/info/hosts >/dev/null 2>&1 ; then
+    echo "sqsadmin: Error, no host '${host}' in queue '${queue}'!"
+    return
+  fi
+    
+  if [ ! -e ${vardir}/${queue}/info/${file} ] ; then
+    echo "sqsadmin: Error, file '${file}' does not exist in queue '${queue}'!"
+    return
+  fi
+  
+  # readout old value
+  local old=$(grep ${host} ${vardir}/${queue}/info/${file})
+  old=${old/${host}:/}
+
+  if [ "${old}" = "${new}" ] ; then
+    echo "sqsadmin: Leaving value for ${host} unchanged ('${old}')."
+    return
+  fi
+  
+  # set new value
+  sqslock ${vardir}/${queue} "root"
+  sqsset ${vardir}/${queue}/info/${file} ${host} ${new}
+  local ec=$?
+  sqsunlock ${vardir}/${queue} "root"
+
+  if [ ${ec} -eq 0 ] ; then
+    echo "sqsadmin: Changed value in ${file} for ${host} from '${old}' to '${new}'."
+  else
+    echo "sqsadmin: Error, set failed!"
+  fi
+} # sqs_set
+
+#_______________________________________________________________________________
 # Script entry point
 #
 
@@ -473,6 +537,10 @@ case "${1}" in
   "stop")
     shift
     sqs_stop $*
+    ;;
+  "set")
+    shift
+    sqs_set $*
     ;;
   "lock")
     echo "sqsadmin: Error, command '${1}' not yet implemented"
