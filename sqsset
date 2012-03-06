@@ -26,9 +26,9 @@ if [ ! -e ${file} ] ; then
   exit 2
 fi
 
-grep -v ${host} ${file} > ${file}.tmp
-echo "${host}:${value}" >> ${file}.tmp
-mv ${file}.tmp ${file}
+grep -v ${host} ${file} > ${file}.tmp  || exit $?
+echo "${host}:${value}" >> ${file}.tmp || exit $?
+mv -f ${file}.tmp ${file}              || exit $?
 
 exit 0
 
