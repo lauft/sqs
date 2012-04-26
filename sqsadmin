@@ -63,14 +63,15 @@ sqs_list() {
   local queue=${1}
 
   if [ "x${queue}" = "x" ] ; then
-    list=$(ls ${vardir})
-    cnt=$(echo ${list} | wc -w | sed -e "s| ||g")
+    list=$(ls ${vardir} 2>/dev/null)
       
-    if [ ${cnt} -eq 0 ] ; then
+    if [ "x${list}" = "x" ] ; then
       echo "No queues in system."
       return
     fi
-      
+ 
+    cnt=$(echo ${list} | wc -w | sed -e "s| ||g")
+
     echo "${cnt} queue(s) in total:"
     for que in ${list} ; do
       sqs_list_queue ${que}
@@ -97,11 +98,13 @@ sqs_list_queue() {
   local folder=${2}
 
   if [ "x${folder}" = "x" ] ; then
-    ecnt=$(ls ${vardir}/${queue}/exec | wc -l | sed -e "s| ||g")
-    wcnt=$(ls ${vardir}/${queue}/wait | wc -l | sed -e "s| ||g")
-    pcnt=$(ls ${vardir}/${queue}/proc | wc -w | sed -e "s| ||g")
+    local ecnt=$(ls ${vardir}/${queue}/exec | wc -l | sed -e "s| ||g")
+    local wcnt=$(ls ${vardir}/${queue}/wait | wc -l | sed -e "s| ||g")
+    local pcnt=$(ls ${vardir}/${queue}/proc | wc -w | sed -e "s| ||g")
+    local hcnt=$(wc -l ${vardir}/${queue}/info/hosts | sed -e "s|^[ ]*\([0-9]\+\).*|\1|g")
+    local tcnt=0
     ((tcnt=ecnt+wcnt))
-    echo "'${queue}': total ${tcnt}, exec ${ecnt}, wait ${wcnt}, proc ${pcnt}"
+    echo "'${queue}': total ${tcnt}, exec ${ecnt}, wait ${wcnt}, proc ${pcnt}, host(s) ${hcnt}"
     return
   fi
 
@@ -113,7 +116,7 @@ sqs_list_queue() {
   fi
 
   if [ -e ${vardir}/${queue}/${folder} ] ; then
-    cnt=$(ls ${vardir}/${queue}/${folder} | wc -w | sed -e "s| ||g")
+    local cnt=$(ls ${vardir}/${queue}/${folder} | wc -w | sed -e "s| ||g")
     
     case "${folder}" in
       "exec" )
@@ -135,7 +138,8 @@ sqs_list_queue() {
           echo "No processes in queue '${queue}'"
           return
         fi
-        echo "Queue '${queue}' has ${cnt} process(es):"   
+        local hcnt=$(wc -l ${vardir}/${queue}/info/hosts | sed -e "s|^[ ]*\([0-9]\+\).*|\1|g")
+        echo "Queue '${queue}' runs ${cnt} process(es) on ${hcnt} host(s):"   
         ;;
     esac
     
@@ -179,6 +183,7 @@ sqs_list_queue_item() {
     esac
   done
 } # sqs_list_queue_item
+
 #_______________________________________________________________________________
 sqs_remove() {
   # helper function for remove
