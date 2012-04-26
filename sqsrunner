@@ -144,29 +144,31 @@ if [ "x${verbose}" = "xyes" ] ; then
   echo "sqsrunner ($$): exiting runner, runners on ${host}: ${nrun}"
 fi
 
-persist=$(sqsgetopt ${queue} "persist" "no")
-
+# Determine total number of runners on all hosts
 trun=0;
+
 for h in $(cat ${queue}/info/hosts) ; do
   nrun=${h#*:}
   ((trun+=nrun))
 done
 
-if [ ${trun} -eq 0 ] ; then
-  if [ "$x${persist}" = "xyes" ] ; then
-    if [ "x${verbose}" = "xyes" ] ; then
-      echo "sqsrunner ($$): leaving queue '${queue}' [${host}]"
-    fi
-
-    sqsunlock ${queue} ${key} || exit $?
-    exit 0
-  fi
-else
-  sqsunlock ${queue} ${key} || exit $?
-  exit 0
+if [ ${trun} -ne 0 ] ; then
+	exit 0
 fi
 
-# try to close queue
+# If the queue is persistent, leave - also if there are no more runners
+persist=$(sqsgetopt ${queue} "persist" "no")
+
+if [ "$x${persist}" = "xyes" ] ; then
+  if [ "x${verbose}" = "xyes" ] ; then
+    echo "sqsrunner ($$): leaving queue '${queue}' [${host}]"
+	fi
+
+	sqsunlock ${queue} ${key} || exit $?
+	exit 0
+fi
+
+# Queue is empty and not persistent, try to close queue
 sqslock ${vardir} ${key} || exit $?
 
 if [ "x${verbose}" = "xyes" ] ; then
@@ -174,7 +176,9 @@ if [ "x${verbose}" = "xyes" ] ; then
 fi
 
 rm -r ${queue}
+
 sqsunlock ${vardir} ${key} || exit $?
-exit
+
+exit 0
 
 ### EOF
