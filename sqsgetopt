@@ -27,9 +27,9 @@ default=${3}
 value=$(grep ${key} ${queue}/info/options 2>/dev/null)
 
 if [ "x${value}" = "x" ] ; then
-	echo ${default}
+  echo ${default}
 else
-	echo ${value#*=}
+  echo ${value#*=}
 fi
 
 exit 0
