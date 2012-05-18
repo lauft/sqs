@@ -153,7 +153,12 @@ for h in $(cat ${queue}/info/hosts) ; do
 done
 
 if [ ${trun} -ne 0 ] ; then
-	exit 0
+  if [ "x${verbose}" = "xyes" ] ; then
+    echo "sqsrunner ($$): total count ${trun}, leaving queue '${queue}' [${host}]"
+  fi
+
+  sqsunlock ${queue} ${key} || exit $?
+  exit 0
 fi
 
 # If the queue is persistent, leave - also if there are no more runners
@@ -161,11 +166,11 @@ persist=$(sqsgetopt ${queue} "persist" "no")
 
 if [ "$x${persist}" = "xyes" ] ; then
   if [ "x${verbose}" = "xyes" ] ; then
-    echo "sqsrunner ($$): leaving queue '${queue}' [${host}]"
-	fi
+    echo "sqsrunner ($$): leaving persistent queue '${queue}' [${host}]"
+  fi
 
-	sqsunlock ${queue} ${key} || exit $?
-	exit 0
+  sqsunlock ${queue} ${key} || exit $?
+  exit 0
 fi
 
 # Queue is empty and not persistent, try to close queue
@@ -178,6 +183,10 @@ fi
 rm -r ${queue}
 
 sqsunlock ${vardir} ${key} || exit $?
+
+if [ "x${verbose}" = "xyes" ] ; then
+  echo "sqsrunner ($$): queue '${queue}' closed [${host}]"
+fi
 
 exit 0
 
