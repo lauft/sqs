@@ -32,15 +32,15 @@ sqsr_add_to_runc()
 source sqsconfig
 
 if [ $# -ne 1 ] ; then
-    echo "sqsrunner ($$): wrong argument count! ($*) [$(hostname)]"
-    exit 1
+  echo "sqsrunner ($$): wrong argument count! ($*) [$(hostname)]"
+  exit 1
 fi
 
 queue=${1}
 
 if ! [ -e ${queue} ] ; then
-    echo "sqsrunner ($$): queue '${queue}' does not exist! [${host}]"
-    exit 2
+  echo "sqsrunner ($$): queue '${queue}' does not exist! [${host}]"
+  exit 2
 fi
 
 host=$(hostname)
