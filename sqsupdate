@@ -42,14 +42,14 @@ if ! [ -e "${queue}" ] ; then
   mkdir ${queue}/proc
   mkdir ${queue}/info
 
-	touch ${queue}/info/hosts
-	touch ${queue}/info/nproc
-	touch ${queue}/info/nice
-	touch ${queue}/info/ionice
-	
+  touch ${queue}/info/hosts
+  touch ${queue}/info/nproc
+  touch ${queue}/info/nice
+  touch ${queue}/info/ionice
+  
   echo "-1"                 > ${queue}/info/ntask
-	echo "master=$(hostname)" > ${queue}/info/options
-	echo "run"                > ${queue}/info/state
+  echo "master=$(hostname)" > ${queue}/info/options
+  echo "run"                > ${queue}/info/state
 else
   if [ "x${verbose}" = "xyes" ] ; then
     echo "sqs: queue already exists!"
@@ -58,51 +58,51 @@ fi
 
 # updating hosts
 for host in ${hostlist} ; do
-	m=${host%%:*}
-	p=${host#*:}; p=${p%:*}
-	n=${host##*:}
-	
-	# try to retrieve previous value, if default values are given
-	if [ "${p}" = "." ] ; then
-	  tmp=`grep ${m} ${queue}/info/nproc`
-		if [ "x${tmp}" = "x" ] ; then
-			p=1
-		else
-			p=${tmp#*:} ; p=${p%:*}
-		fi
-	fi
+  m=${host%%:*}
+  p=${host#*:}; p=${p%:*}
+  n=${host##*:}
+  
+  # try to retrieve previous value, if default values are given
+  if [ "${p}" = "." ] ; then
+    tmp=`grep ${m} ${queue}/info/nproc`
+    if [ "x${tmp}" = "x" ] ; then
+      p=1
+    else
+      p=${tmp#*:} ; p=${p%:*}
+    fi
+  fi
 
-	if [ "${n}" = "." ] ; then
-		tmp=`grep ${m} ${queue}/info/nice`
-		if [ "x${tmp}" = "x" ] ; then
-			n=0
-		else
-			n=${tmp##*:} ; n=${n%;}
-		fi
-	fi
-		
-	# remove previous entries for this host
-	grep -v ${m} ${queue}/info/nproc > ${queue}/info/nproc.tmp
-	grep -v ${m} ${queue}/info/nice  > ${queue}/info/nice.tmp
+  if [ "${n}" = "." ] ; then
+    tmp=`grep ${m} ${queue}/info/nice`
+    if [ "x${tmp}" = "x" ] ; then
+      n=0
+    else
+      n=${tmp##*:} ; n=${n%;}
+    fi
+  fi
+    
+  # remove previous entries for this host
+  grep -v ${m} ${queue}/info/nproc > ${queue}/info/nproc.tmp
+  grep -v ${m} ${queue}/info/nice  > ${queue}/info/nice.tmp
 
-	# add new values
-	echo "${m}:${p}" >> ${queue}/info/nproc.tmp
-	echo "${m}:${n}" >> ${queue}/info/nice.tmp
+  # add new values
+  echo "${m}:${p}" >> ${queue}/info/nproc.tmp
+  echo "${m}:${n}" >> ${queue}/info/nice.tmp
 
-	mv ${queue}/info/nproc.tmp ${queue}/info/nproc
-	mv ${queue}/info/nice.tmp  ${queue}/info/nice
+  mv ${queue}/info/nproc.tmp ${queue}/info/nproc
+  mv ${queue}/info/nice.tmp  ${queue}/info/nice
 done
   
 # updating options
 for opt in ${options} ; do
-	key=${opt%=*}
-	# remove previous entries for this option
-	grep -v ${key} ${queue}/info/options > ${queue}/info/options.tmp
-	
-	# add new value
-	echo "${opt}" >> ${queue}/info/options.tmp
+  key=${opt%=*}
+  # remove previous entries for this option
+  grep -v ${key} ${queue}/info/options > ${queue}/info/options.tmp
+  
+  # add new value
+  echo "${opt}" >> ${queue}/info/options.tmp
 
-	mv ${queue}/info/options.tmp ${queue}/info/options
+  mv ${queue}/info/options.tmp ${queue}/info/options
 done
 
 exit 0
