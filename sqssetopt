@@ -13,9 +13,12 @@
 # 3 = value
 #
 
+E_SUCCESS=0
+E_FAILURE=1
+
 if [ $# -ne 3 ] ; then
   echo "sqssetopt: wrong argument count! ($*)"
-  exit 1
+  exit E_FAILURE
 fi
 
 queue=${1}
@@ -26,6 +29,6 @@ grep -v ${key} ${queue}/info/options > ${queue}/info/options.tmp
 echo "${key}=${value}" >> ${queue}/info/options.tmp
 mv ${queue}/info/options.tmp ${queue}/info/options
 
-exit 0
+exit E_SUCCESS
 
 ### EOF
