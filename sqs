@@ -5,7 +5,7 @@ source sqsconfig
 queue=""
 targets=""
 call=""
-verbose="no"
+#verbose="no"
 host=$(hostname)
 
 #_______________________________________________________________________________
@@ -214,16 +214,10 @@ while [ ${1:q} ]; do
       read_config ${1} || exit $?
       ;;
     --persist )
-      options="${options} master= persist=yes"
+      options="${options} persist=yes"
       ;;
     --create-only )
-			createonly="yes"
-		  ;;
-		--persistent )
-      persistent="yes"
-      ;;
-    --logfile )
-      echo "logfile option not yet supported!"
+      createonly="yes"
       ;;
     --dry-run )
       dryrun="yes"
@@ -231,11 +225,10 @@ while [ ${1:q} ]; do
     --verbose )
       verbose="yes"
       ;;
-    -h )
-      usage
-      exit
+    --logfile )
+      echo "logfile option not yet supported!"
       ;;
-    --help )
+    --help | -h )
       usage
       exit
       ;;
@@ -256,7 +249,9 @@ done
 #
 
 # export verbosity
-export verbose
+if [ "x${verbose}" != "x" ] ; then
+  export verbose
+fi
 
 # generate lock key
 key="${host}.$$"
@@ -315,10 +310,6 @@ fi
 
 # Creating/updating queue
 sqsupdate "${vardir}/${queue}" "${hostlist}" "${options}" || exit $?
-
-if [ "x${persistent}" = "xyes" ] ; then
-  touch ${vardir}/${queue}/info/persistent
-fi
 
 sqslock ${vardir}/${queue} ${key} || exit $?
 sqsunlock ${vardir} ${key} || exit $?

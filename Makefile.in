@@ -9,6 +9,7 @@ FILES=sqsconfig \
       sqsunlock \
       sqsgetopt \
       sqsupdate \
+      sqsset \
       sqsclose \
       sqsadmin
 
