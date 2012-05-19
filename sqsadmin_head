@@ -1,0 +1,52 @@
+#!/bin/bash
+
+#
+# Helper script for the SQS
+# Administration of queues
+# 
+
+progdir=${0%/*}
+source ${progdir}/sqsconfig
+
+#_______________________________________________________________________________
+print_usage() {
+  # print usage information
+  #
+  cat <<EOF
+USAGE
+  ${0##*/} <command> [<parameter>]
+
+COMMANDS
+  list                Show list of queues
+  list QUEUE          Show list of tasks in queue QUEUE.
+  list QUEUE TASK     Show task TASK
+
+  remove QUEUE TASK   Remove task number TASK from queue QUEUE.
+  remove QUEUE all    Remove all tasks from queue QUEUE
+  remove QUEUE first  Remove first task from queue QUEUE
+  remove QUEUE last   Remove last task from queue QUEUE
+
+  kill QUEUE TASK     Kill processing task number TASK from queue QUEUE
+  kill QUEUE all      Kill all processing tasks from queue QUEUE
+
+  renice QUEUE TASK   Set nice level for processing TASK in queue QUEUE
+  renice QUEUE        Set nice level for queue QUEUE
+
+  create QUEUE        Create a new (persistent) queue QUEUE
+EOF
+}
+
+#_______________________________________________________________________________
+query() {
+  # Helper Q/A-function
+  #
+  echo -n "${1} "
+  read ans
+  
+  if [[ "x${ans}" = "xy" || "x${ans}" = "xyes" ]] ; then
+      return 0
+  fi
+
+  return 1
+} # query
+

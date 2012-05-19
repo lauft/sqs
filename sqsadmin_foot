@@ -1,0 +1,58 @@
+#_______________________________________________________________________________
+# Script entry point
+#
+
+# parse options
+case "${1}" in
+  "")
+    print_usage
+    ;;
+  "help" | "h")
+    print_usage
+    ;;
+  "list" | "ls")
+    shift
+    sqs_list $*
+    ;;
+  "remove" | "rm")
+    shift
+    sqs_remove $*
+    ;;
+  "kill")
+	  shift
+    sqs_kill $*
+    ;;
+  "create" | "c")
+    shift
+    sqs_create $*
+    ;;
+  "close")
+    shift
+    sqs_close $*
+		;;
+	"start" | "continue" )
+    shift
+    sqs_start $*
+		;;
+  "stop")
+		shift
+		sqs_stop $*
+		;;
+  "lock")
+    echo "sqsadmin: Error, command '${1}' not yet implemented"
+    #shift
+    #sqs_lock $*
+    ;;
+  "unlock")
+    echo "sqsadmin: Error, command '${1}' not yet implemented"
+    #shift
+    #sqs_unlock $*
+    ;;
+  *)
+    echo "sqsadmin: Error, unknown command '${1}'"
+    print_usage
+    exit
+    ;;
+esac
+
+### EOF

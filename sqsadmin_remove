@@ -1,0 +1,98 @@
+#_______________________________________________________________________________
+sqs_remove() {
+  # helper function for remove
+  # remove only applies to waiting tasks!
+  # 
+  local queue=${1}
+
+  if [ "x${queue}" = "x" ] ; then
+    echo "sqsadmin: Error, specify queue!"
+    return
+  fi
+
+	if [ -e ${vardir}/${queue} ] ; then
+    sqs_remove_queue ${*}
+  else
+	  echo "sqsadmin: Error, queue '${queue}' does not exist!"
+  fi
+} # sqs_remove
+
+#_______________________________________________________________________________
+sqs_remove_queue() {
+  # remove tasks from queue
+  #
+  local queue=${1}; shift
+	local task=${*}
+
+  if [ "x${task}" = "x" ] ; then
+	   # remove all waiting tasks from queue
+		 task="all"
+  fi
+	
+	sqs_remove_task ${queue} ${task}
+
+} # sqs_remove_queue
+
+#_______________________________________________________________________________
+sqs_remove_task() {
+  # remove specified waiting tasks in queue
+  #
+  local queue=${1}; shift
+  local list=${*}
+
+	for task in ${list} ; do
+    case "${task}" in
+      "first")
+				task=$(ls ${vardir}/${queue}/wait/ | sort -n | head -n 1)
+        if query "Remove first waiting task (id=${task}) from queue '${queue}'?" ; then
+					sqs_remove_task_noquery ${queue} ${task}
+				fi
+				;;
+			"last")
+				task=$(ls ${vardir}/${queue}/wait/ | sort -n | tail -n 1)
+        if query "Remove last waiting task (id=${task}) from queue '${queue}'?" ; then
+					sqs_remove_task_noquery ${queue} ${task}
+				fi
+				;;
+      "all")
+				if query "Remove all waiting task from queue '${queue}'?" ; then
+				  sqslock ${vardir}/${queue} 'root'
+					tsklist=`ls ${vardir}/${queue}/wait/ | sort -n`		
+					for tsk in ${tsklist} ; do
+					  sqs_remove_task_noquery ${queue} ${tsk}	
+					done
+					sqsunlock ${vardir}/${queue} 'root'
+					return
+				fi
+				;;
+			[0-9]*)
+        if [ ! -e ${vardir}/${queue}/wait/${task} ] ; then
+          echo "sqsadmin: Error, no waiting task with id ${task}!"
+					continue
+				fi
+				if query "Remove waiting task ${task} from queue '${queue}'?" ; then
+					sqslock ${vardir}/${queue} 'root'
+					sqs_remove_task_noquery ${queue} ${task}
+					sqsunlock ${vardir}/${queue} 'root'
+				fi
+				;;
+			*)
+        echo "sqsadmin: Error, unknown argument '${task}'"
+				;;    
+		esac
+	done
+} # sqs_remove_task
+
+#_______________________________________________________________________________
+sqs_remove_task_noquery() {
+  # Helper function
+  # Function does not lock queue, this has to be done by the calling function!
+  #
+	local queue=${1}
+	local task=${2}
+
+	echo -n "Removing ${task}: "
+	cat ${vardir}/${queue}/wait/${task}
+	rm ${vardir}/${queue}/wait/${task}
+
+} # sqs_remove_task_noquery

@@ -1,0 +1,60 @@
+#_______________________________________________________________________________
+sqs_create() {
+  # Create a new persistent queue.
+  # The queue is only created, not started.
+  #
+  local queue=${1}
+
+  if [ "x${queue}" = "x" ] ; then
+    echo "sqsadmin: Error, specify queue!"
+    return
+  fi
+
+  sqs --queue ${queue} --create-only --persistent --verbose
+
+} # sqs_create
+
+#_______________________________________________________________________________
+sqs_close() {
+  # Close a queue, that is remove it from <vardir>.
+  #
+  local queue=${1}
+
+  if [ "x${queue}" = "x" ] ; then
+    echo "sqsadmin: Error, specify queue!"
+    return
+  fi
+	
+	sqsclose ${vardir}/${queue}
+	
+} # sqs_close
+
+#_______________________________________________________________________________
+sqs_start() {
+  # Start a queue, that is seed runner(s).
+  #
+  local queue=${1}
+
+  if [ "x${queue}" = "x" ] ; then
+    echo "sqsadmin: Error, specify queue!"
+    return
+  fi
+
+	echo "sqsadmin: start command not yet implemented"
+
+} # sqs_start
+
+#_______________________________________________________________________________
+sqs_stop() {
+  # Stop a queue, that is prevent creation of new runner(s).
+  #
+  local queue=${1}
+
+  if [ "x${queue}" = "x" ] ; then
+    echo "sqsadmin: Error, specify queue!"
+    return
+  fi
+
+	echo "sqsadmin: stop command not yet implemented"
+
+} # sqs_stop
