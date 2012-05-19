@@ -29,8 +29,7 @@ Options:
              expected in the format <hostname>:<processes>:<nice>:<ionice>.
              Lines beginning with '#' are ignored.
              
-  --host     specify host [hostname:processes:nicelevel].
-             if hostname is omitted, name of current host is set.
+  --host     specify host (hostname[:processes[:nicelevel[:ionicelevel]]]).
 
   --nproc    maximum number of parallel processes for host [hostname:processes].
              if hostname is omitted, current host is set.
@@ -38,12 +37,19 @@ Options:
   --nice     set nice level for queue for host [hostname:nicelevel].
              if hostname is omitted, name of current host is set.
   
-  --create-only  only create the queue.
-
-  --persistent  make the queue persistent.
-
   --ionice   set nice level for queue for host [hostname:ionicelevel].
              if hostname is omitted, name of current host is set.
+
+  --update   update the queue if it already exists
+
+  --no-update
+             do not update the queue if it already exists
+
+  --create-only  
+             only create the queue.
+
+  --persistent  
+             make the queue persistent.
 
   --logfile  redirect output of each process to a logfile '<target>.log'.
 
@@ -68,13 +74,15 @@ add_to_hostlist() {
   #echo "add_to_hostlist $*"
 
   # check host
-  host ${1} >/dev/null 2>&1 || return 12
+	if [ "$(hostname)" != ${1} ] ; then
+    host ${1} >/dev/null 2>&1 || return 12
+	fi
 
   # check process limit
-  [[ ${2} =~ "\."|[[:digit:]] ]] || return 13
+  [[ ${2} =~ "."|[[:digit:]] ]] || return 13
 
   # check nice level
-  [[ ${3} =~ "\."|[-]?[[:digit:]] ]] || return 14
+  [[ ${3} =~ "."|[-]?[[:digit:]] ]] || return 14
 
   local mm=${1}
   local pp=${2}
@@ -178,7 +186,7 @@ while [ ${1:q} ]; do
           p=${1#*:}; p=${p%:*}
           n=${1##*:}
           ;;
-	*:[[:digit:]]*  )
+	      *:[[:digit:]]*  )
           m=${1%:*}
           p=${1#*:}
           n="."

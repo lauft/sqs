@@ -68,7 +68,6 @@ while [ true ] ; do
 
 	# exit loop if above maximum
 	if [ ${nrun} -gt ${nmax} ] ; then
-		sqsunlock ${queue} ${key} || exit $?
 		break
 	fi
 
