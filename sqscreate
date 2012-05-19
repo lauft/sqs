@@ -1,0 +1,63 @@
+#!/bin/bash
+
+#
+# Helper script for the SQS
+# Creates a new queue directory.
+#
+# WARNING: script does not lock <vardir>! Locking and release of the
+#          directory containing the queues has to be done by the caller!
+#
+# Parameters:
+# 1 = name of the queue
+#
+# Returns
+#  0  on success
+#  1  if queue already exists
+# -1  on failure
+#
+
+E_SUCCESS=0
+E_EXISTS=1
+E_FAILURE=-1
+
+if [ $# -ne 1 ] ; then
+  echo "sqscreate: wrong argument count! ($*)"
+  exit 1
+fi
+
+queue=${1}
+
+# checking whether queue already exists
+if [ -e "${queue}" ] ; then
+  if [ "x${verbose}" = "xyes" ] ; then
+    echo "sqscreate: queue already exists!"
+  fi
+	
+	exit E_EXISTS
+fi
+
+# creating queue if non-existent
+if [ "x${verbose}" = "xyes" ] ; then
+  echo "sqscreate: queue does not exist, creating new queue!"
+fi
+
+mkdir ${queue} || exit E_FAILURE
+
+# creating subfolders
+mkdir ${queue}/wait || exit E_FAILURE
+mkdir ${queue}/exec || exit E_FAILURE
+mkdir ${queue}/proc || exit E_FAILURE
+mkdir ${queue}/info || exit E_FAILURE
+
+# creating info files
+touch ${queue}/info/hosts  || exit E_FAILURE
+touch ${queue}/info/nproc  || exit E_FAILURE
+touch ${queue}/info/nice   || exit E_FAILURE
+touch ${queue}/info/ionice || exit E_FAILURE
+	
+# filling in default values
+echo "-1"                 > ${queue}/info/ntask
+echo "master=$(hostname)" > ${queue}/info/options
+echo "run"                > ${queue}/info/state
+
+exit E_SUCCESS
