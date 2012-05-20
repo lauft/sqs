@@ -48,8 +48,9 @@ Options:
   --create-only  
              only create the queue.
 
-  --persistent  
-             make the queue persistent.
+  --persist  make the queue persistent.
+
+  --busy     makt the queue a busy queue
 
   --logfile  redirect output of each process to a logfile '<target>.log'.
 
@@ -207,7 +208,7 @@ while [ ${1:q} ]; do
           n="."
           ;;
       esac
-      add_to_hostlist ${m} ${p} ${n} || { ec=$?; usage ; exit ${ec}; }
+      add_to_hostlist ${m} ${p} ${n} || { ec=$? ; usage ; exit ${ec} ; }
       ;;
     --config )
       shift
@@ -215,6 +216,9 @@ while [ ${1:q} ]; do
       ;;
     --persist )
       options="${options} persist=yes"
+      ;;
+    --busy )
+      options="${options} busy=yes"
       ;;
     --create-only )
       createonly="yes"
@@ -254,7 +258,7 @@ if [ "x${verbose}" != "x" ] ; then
 fi
 
 # generate lock key
-key="${host}.$$"
+lockkey="${host}.$$"
 
 # create queue name if not yet specified
 if [ "x${queue}" = "x" ] ; then
@@ -302,23 +306,63 @@ fi
 
 # TODO: add traps
 
-sqslock ${vardir} ${key} || exit $?
+sqslock ${vardir} ${lockkey} || exit $?
 
-if [ "x${verbose}" = "xyes" ] ; then
-  echo "sqs: updating queue ${vardir}/${queue}..."
+# Creating queue
+sqscreate "${vardir}/${queue}" ; success=$?
+
+if [ ${success} -lt 0 ] ; then
+  exit ${success}
 fi
 
-# Creating/updating queue
-sqsupdate "${vardir}/${queue}" "${hostlist}" "${options}" || exit $?
+if [ ${success} -gt 0 ] ; then
+  # queue exists, shall we update?
+	updatequeue=${updateconfig}
+fi
 
-sqslock ${vardir}/${queue} ${key} || exit $?
-sqsunlock ${vardir} ${key} || exit $?
+# Locking queue, unlocking SQS directory
+sqslock ${vardir}/${queue} ${lockkey} || exit $?
+sqsunlock ${vardir} ${lockkey} || exit $?
+
+# Setting queue options
+for opt in ${options} ; do
+  key=${opt%=*}
+	val=${opt#*=}
+	sqssetopt ${vardir}/${queue} ${key} ${val}
+
+done
+
+# Enter host settings
+for host in ${hostlist} ; do
+  m=${host%%:*}
+  p=${host#*:}; p=${p%:*} # max processes
+  n=${host##*:}           # nice 
+	i="."                   # ionice
+
+  # try to retrieve previous value, if wildcard values are given
+  if [ "${p}" = "." ] ; then
+    p=$(sqsget ${vardir}/${queue}/info/nproc ${m} 1)
+  fi
+    
+  if [ "${n}" = "." ] ; then
+		n=$(sqsget ${vardir}/${queue}/info/nice ${m} 0)
+  fi
+
+  if [ "${i}" = "." ] ; then
+		i=$(sqsget ${vardir}/${queue}/info/ionice ${m} 0)
+  fi
+
+	sqsset ${vardir}/${queue}/info/nproc  ${m} ${p}
+	sqsset ${vardir}/${queue}/info/nice   ${m} ${n}
+	sqsset ${vardir}/${queue}/info/ionice ${m} ${i}
+
+done
 
 # Adding tasks
-separator=$IFS ; IFS=";"
+separator=${IFS} ; IFS=";"
 
 for task in ${tasklist} ; do
-  i=`cat ${vardir}/${queue}/info/ntask`
+  i=$(cat ${vardir}/${queue}/info/ntask)
   ((i++))
   echo "sqs: add task ${i} '${task}'"
   echo ${task} > ${vardir}/${queue}/wait/${i}
@@ -327,7 +371,7 @@ done
 
 IFS=${separator}
 
-sqsunlock ${vardir}/${queue} ${key} || exit $?
+sqsunlock ${vardir}/${queue} ${lockkey} || exit $?
 
 if [ "x${createonly}" != "xyes" ] ; then
   #separator=$IFS ; IFS=";"
