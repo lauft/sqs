@@ -79,9 +79,9 @@ while [ true ] ; do
       echo "sqsrunner ($$): no more tasks in list [${host}]"
     fi
 
-    persist=$(sqsgetopt ${queue} "persist" "no")
+    busy=$(sqsgetopt ${queue} "busy" "no")
 
-    if [ "x${persist}" = "xyes" ] && [ ${nrun} -eq 1 ] ; then
+    if [ "x${busy}" = "xyes" ] && [ ${nrun} -eq 1 ] ; then
       sqsunlock ${queue} ${key} || exit $?
       if [ "x${verbose}" = "xyes" ] ; then
         echo "sqsrunner ($$): ideling [${host}]"
@@ -163,7 +163,7 @@ fi
 # If the queue is persistent, leave - also if there are no more runners
 persist=$(sqsgetopt ${queue} "persist" "no")
 
-if [ "$x${persist}" = "xyes" ] ; then
+if [ "x${persist}" = "xyes" ] ; then
   if [ "x${verbose}" = "xyes" ] ; then
     echo "sqsrunner ($$): leaving persistent queue '${queue}' [${host}]"
   fi

@@ -33,7 +33,7 @@ if [ -e "${queue}" ] ; then
     echo "sqscreate: queue already exists!"
   fi
 	
-	exit E_EXISTS
+	exit ${E_EXISTS}
 fi
 
 # creating queue if non-existent
@@ -41,23 +41,23 @@ if [ "x${verbose}" = "xyes" ] ; then
   echo "sqscreate: queue does not exist, creating new queue!"
 fi
 
-mkdir ${queue} || exit E_FAILURE
+mkdir ${queue} || exit ${E_FAILURE}
 
 # creating subfolders
-mkdir ${queue}/wait || exit E_FAILURE
-mkdir ${queue}/exec || exit E_FAILURE
-mkdir ${queue}/proc || exit E_FAILURE
-mkdir ${queue}/info || exit E_FAILURE
+mkdir ${queue}/wait || exit ${E_FAILURE}
+mkdir ${queue}/exec || exit ${E_FAILURE}
+mkdir ${queue}/proc || exit ${E_FAILURE}
+mkdir ${queue}/info || exit ${E_FAILURE}
 
 # creating info files
-touch ${queue}/info/hosts  || exit E_FAILURE
-touch ${queue}/info/nproc  || exit E_FAILURE
-touch ${queue}/info/nice   || exit E_FAILURE
-touch ${queue}/info/ionice || exit E_FAILURE
+touch ${queue}/info/hosts  || exit ${E_FAILURE}
+touch ${queue}/info/nproc  || exit ${E_FAILURE}
+touch ${queue}/info/nice   || exit ${E_FAILURE}
+touch ${queue}/info/ionice || exit ${E_FAILURE}
 	
 # filling in default values
 echo "-1"                 > ${queue}/info/ntask
 echo "master=$(hostname)" > ${queue}/info/options
 echo "run"                > ${queue}/info/state
 
-exit E_SUCCESS
+exit ${E_SUCCESS}
