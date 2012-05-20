@@ -38,6 +38,22 @@ case "${1}" in
 		shift
 		sqs_stop $*
 		;;
+  "set")
+		shift
+		sqs_set $*
+		;;
+  "get")
+		shift
+		sqs_get $*
+		;;
+  "setopt")
+		shift
+		sqs_setopt $*
+		;;
+  "getopt")
+		shift
+		sqs_getopt $*
+		;;
   "lock")
     echo "sqsadmin: Error, command '${1}' not yet implemented"
     #shift
