@@ -7,7 +7,7 @@
 # WARNING: script does not lock <queue>! Locking and release of the
 #          queue has to be done by the caller!
 #
-# 1 = queue name
+# 1 = queue path
 # 2 = key to be queried
 # 3 = default value
 #
