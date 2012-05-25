@@ -19,7 +19,7 @@ case "${1}" in
     sqs_remove $*
     ;;
   "kill")
-	  shift
+    shift
     sqs_kill $*
     ;;
   "create" | "c")
@@ -29,31 +29,31 @@ case "${1}" in
   "close")
     shift
     sqs_close $*
-		;;
-	"start" | "continue" )
+    ;;
+  "start" | "continue" )
     shift
     sqs_start $*
-		;;
+    ;;
   "stop")
-		shift
-		sqs_stop $*
-		;;
+    shift
+    sqs_stop $*
+    ;;
   "set")
-		shift
-		sqs_set $*
-		;;
+    shift
+    sqs_set $*
+    ;;
   "get")
-		shift
-		sqs_get $*
-		;;
+    shift
+    sqs_get $*
+    ;;
   "setopt")
-		shift
-		sqs_setopt $*
-		;;
+    shift
+    sqs_setopt $*
+    ;;
   "getopt")
-		shift
-		sqs_getopt $*
-		;;
+    shift
+    sqs_getopt $*
+    ;;
   "lock")
     echo "sqsadmin: Error, command '${1}' not yet implemented"
     #shift

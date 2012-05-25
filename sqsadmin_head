@@ -18,13 +18,15 @@ USAGE
 
 COMMANDS
   list                Show list of queues
-  list QUEUE          Show list of tasks in queue QUEUE.
-  list QUEUE TASK     Show task TASK
+  list QUEUE          Show short description of queue QUEUE
+  list QUEUE FOLDER   Show all items in folder FOLDER (wait|exec|proc|all)
+  list QUEUE FOLDER ITEM
+                      Show item ITEM in folder FOLDER
 
-  remove QUEUE TASK   Remove task number TASK from queue QUEUE.
-  remove QUEUE all    Remove all tasks from queue QUEUE
-  remove QUEUE first  Remove first task from queue QUEUE
-  remove QUEUE last   Remove last task from queue QUEUE
+  remove QUEUE TASK   Remove waiting task id TASK from queue QUEUE
+  remove QUEUE all    Remove all waiting tasks from queue QUEUE
+  remove QUEUE first  Remove first waiting task from queue QUEUE
+  remove QUEUE last   Remove last waiting task from queue QUEUE
 
   kill QUEUE TASK     Kill processing task number TASK from queue QUEUE
   kill QUEUE all      Kill all processing tasks from queue QUEUE
@@ -33,6 +35,9 @@ COMMANDS
   renice QUEUE        Set nice level for queue QUEUE
 
   create QUEUE        Create a new (persistent) queue QUEUE
+  set QUEUE HOST PRM VAL   
+                      Set value of PRM (nproc|nice|ionice) for host HOST
+                      in queue QUEUE to VAL
 EOF
 }
 

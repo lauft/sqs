@@ -10,7 +10,7 @@ sqs_create() {
     return
   fi
 
-  sqs --queue ${queue} --create-only --persistent --verbose
+  sqs --queue ${queue} --create-only --persist --verbose
 
 } # sqs_create
 
@@ -24,14 +24,14 @@ sqs_close() {
     echo "sqsadmin: Error, specify queue!"
     return
   fi
-	
-	sqsclose ${vardir}/${queue}
-	
+  
+  sqsclose ${vardir}/${queue}
+  
 } # sqs_close
 
 #_______________________________________________________________________________
 sqs_start() {
-  # Start a queue, that is seed runner(s).
+  # Start/continue a queue, that is seed runner(s).
   #
   local queue=${1}
 
@@ -40,7 +40,7 @@ sqs_start() {
     return
   fi
 
-	echo "sqsadmin: start command not yet implemented"
+  echo "sqsadmin: start command not yet implemented"
 
 } # sqs_start
 
@@ -55,6 +55,6 @@ sqs_stop() {
     return
   fi
 
-	echo "sqsadmin: stop command not yet implemented"
+  echo "sqsadmin: stop command not yet implemented"
 
 } # sqs_stop
