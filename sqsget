@@ -1,0 +1,39 @@
+#!/bin/bash
+
+#
+# Helper script for the SQS
+# Sets a value for the specified host in the specified file
+#
+# WARNING: script does not lock <queue>! Locking and release of the
+#          queue has to be done by the caller!
+#
+# 1 = filename (e.g. <queue>/info/nproc)
+# 2 = hostname
+# 3 = default value
+#
+
+if [ $# -ne 3 ] ; then
+  echo "sqsget: wrong argument count! ($*)" 
+  exit 1
+fi
+
+file=${1}
+host=${2}
+default=${3}
+
+if [ ! -e ${file} ] ; then
+  echo "sqsget: Error, invalid filename '${file}'"
+  exit 2
+fi
+
+value=$(grep ${host} ${file} 2>/dev/null)
+
+if [ "x${value}" = "x" ] ; then
+  echo ${default}
+else
+  echo ${value#*:}
+fi
+
+exit 0
+
+### EOF
