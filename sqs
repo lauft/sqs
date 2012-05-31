@@ -364,7 +364,7 @@ separator=${IFS} ; IFS=";"
 for task in ${tasklist} ; do
   i=$(cat ${vardir}/${queue}/info/ntask)
   ((i++))
-  echo "sqs: add task ${i} '${task}'"
+  echo "sqs: add task ${i} to queue '${queue}': '${task}'"
   echo ${task} > ${vardir}/${queue}/wait/${i}
   echo ${i}    > ${vardir}/${queue}/info/ntask
 done
