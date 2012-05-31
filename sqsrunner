@@ -16,9 +16,10 @@ sqsr_add_to_runc()
   nrun=${nrun#*:}
   if [ ${1} -ne 0 ] ; then
     ((nrun=nrun+${1}))
-    grep -v ${host} ${queue}/info/hosts > ${queue}/info/hosts.tmp
-    mv ${queue}/info/hosts.tmp ${queue}/info/hosts
-    echo "${host}:${nrun}" >> ${queue}/info/hosts
+		sqsset ${queue}/info/hosts ${host} ${nrun}
+    #grep -v ${host} ${queue}/info/hosts > ${queue}/info/hosts.tmp
+    #mv ${queue}/info/hosts.tmp ${queue}/info/hosts
+    #echo "${host}:${nrun}" >> ${queue}/info/hosts
   fi
   echo ${nrun}
   return
@@ -60,7 +61,8 @@ while [ true ] ; do
   nrun=$(sqsr_add_to_runc 0)
 
   # retrieve number of allowed runners for host
-  nmax=`cat ${queue}/info/nproc | grep ${host} | sed "s|^.*:||"`
+	nmax=$(sqsget ${queue}/info/nproc ${host} 0)
+  #nmax=`cat ${queue}/info/nproc | grep ${host} | sed "s|^.*:||"`
 
   if [ "x${verbose}" = "xyes" ] ; then
     echo "sqsrunner ($$): ${nrun} of ${nmax} processes [${host}]"
@@ -106,9 +108,11 @@ while [ true ] ; do
   task=`cat ${queue}/wait/${tid}`
 
   # retrieve nice level of queue for host
-  nlvl=`cat ${queue}/info/nice | grep ${host} | sed "s|^.*:||"`
+	nlvl=$(sqsget ${queue}/info/nice ${host} 0)
+  #nlvl=`cat ${queue}/info/nice | grep ${host} | sed "s|^.*:||"`
 
   # retrieve ionice level of queue for host
+	#iolv=$(sqsget ${queue}/info/ionice ${host} 0)
   #iolv=`cat ${queue}/info/ionice | grep ${host} | sed "s|^.*:||"`
 
   # move task to exec
