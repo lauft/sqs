@@ -15,9 +15,14 @@ fi
 key="$(hostname).$$"
 queue=${1%/}
 
+if ! [ -d ${queue} ] ; then
+  echo "sqsclose: path '${queue}' does not point to a directory"
+  exit 2
+fi
+
 if ! [ -e ${queue} ] ; then
   echo "sqsclose: queue '${queue}' does not exist"
-  exit 2
+  exit 3
 fi
 
 parent=${queue%/*}
