@@ -1,0 +1,57 @@
+#! /bin/bash
+
+#
+# Helper script for the SQS
+# Get and set configuration settings
+# The config file has to be located in the 
+# same directory as this script!
+# Configuration are stored as bash variables, i.e.
+# in the format <key>=<value>
+#
+# USAGE:
+#   sqsconf get KEY DEF
+#   sqsconf set KEY VAL
+#
+
+E_SUCCESS=0
+E_FAILURE=1
+
+cfgfile=${0%/*}/sqsconfig
+
+if [ ! -e ${cfgfile} ] ; then
+  echo "sqsconf: cannot access sqsconfig (${cfgfile})"
+  exit ${E_FAILURE}
+fi
+
+if [ $# -ne 3 ] ; then
+  echo "sqsconf: wrong argument count! ($*)" 
+  exit ${E_FAILURE}
+fi
+
+cmd=${1}
+key=${2}
+
+if [ "x${cmd}" = "xget" ] ; then
+  # retrieve a value from the config file
+  def=${3}
+  val=$(grep ${key} ${cfgfile} 2>/dev/null)
+  if [ "x${val}" = "x" ] ; then
+    echo ${def}
+  else
+    echo ${val#*=}
+  fi
+elif [ "x${cmd}" = "xset" ] ; then
+  # set a value in the config file
+  val=${3}
+  grep -v ${key} ${cfgfile} > ${cfgfile}.tmp 
+  echo "${key}=${val}" >> ${cfgfile}.tmp || exit $?
+  mv -f ${cfgfile}.tmp ${cfgfile}        || exit $?
+else
+  # invalid command
+  echo "sqsconf: unknown command '${cmd}'"
+  exit ${E_FAILURE}
+fi
+
+exit ${E_SUCCESS}
+
+### EOF

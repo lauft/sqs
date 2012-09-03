@@ -13,6 +13,8 @@ FILES=sqsconfig \
       sqsget \
       sqscreate \
       sqsclose \
+      sqsconf \
+      sqstest \
       sqsadmin
 
 SQSADMIN=sqsadmin_head \
