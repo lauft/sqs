@@ -35,6 +35,9 @@ COMMANDS
   renice QUEUE        Set nice level for queue QUEUE
 
   create QUEUE        Create a new (persistent) queue QUEUE
+
+  get QUEUE HOST PRM  Get value of PRM (nproc|nice|ionice) for host HOST
+                      in queue QUEUE
   set QUEUE HOST PRM VAL   
                       Set value of PRM (nproc|nice|ionice) for host HOST
                       in queue QUEUE to VAL

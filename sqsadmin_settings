@@ -1,7 +1,38 @@
 #_______________________________________________________________________________
 sqs_get() {
-  # Retrieve options from queue
+  # Retrieve value for given host from queue
+  # The file is most likely one of (nproc|nice|ionice), however
+  # this is not limited to this. It can be any file located in 
+  # the info folder of the queue
   #
+  if [ $# -ne 3 ] ; then
+    echo "sqsadmin: Error, wrong argument count!"
+    return
+  fi
+
+  local queue=${1}
+  local host=${2}
+  local file=${3}
+
+  if [ "x${queue}" = "x" ] ; then
+    echo "sqsadmin: Error, specify queue!"
+    return
+  fi
+
+  if [ ! -e ${vardir}/${queue} ] ; then
+    echo "sqsadmin: Error, queue '${queue}' does not exist!"
+    return
+  fi
+  
+  if ! grep ${host} ${vardir}/${queue}/info/hosts >/dev/null 2>&1 ; then
+    echo "sqsadmin: Error, no host '${host}' in queue '${queue}'!"
+    return
+  fi
+
+  # readout old value
+  local value=$(grep ${host} ${vardir}/${queue}/info/${file})
+  value=${old/${host}:/}
+  echo ${value}
 
 } # sqs_get
 
