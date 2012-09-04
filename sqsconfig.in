@@ -1,6 +1,7 @@
 ################################################################################
 # configuration options for sqs
 #
+version=1.0
 prefix=@prefix@
 vardir=@vardir@
 bindir=@bindir@
