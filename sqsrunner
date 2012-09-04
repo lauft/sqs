@@ -16,10 +16,7 @@ sqsr_add_to_runc()
   nrun=${nrun#*:}
   if [ ${1} -ne 0 ] ; then
     ((nrun=nrun+${1}))
-		sqsset ${queue}/info/hosts ${host} ${nrun}
-    #grep -v ${host} ${queue}/info/hosts > ${queue}/info/hosts.tmp
-    #mv ${queue}/info/hosts.tmp ${queue}/info/hosts
-    #echo "${host}:${nrun}" >> ${queue}/info/hosts
+    sqsset ${queue}/info/hosts ${host} ${nrun}
   fi
   echo ${nrun}
   return
@@ -61,17 +58,16 @@ while [ true ] ; do
   nrun=$(sqsr_add_to_runc 0)
 
   # retrieve number of allowed runners for host
-	nmax=$(sqsget ${queue}/info/nproc ${host} 0)
-  #nmax=`cat ${queue}/info/nproc | grep ${host} | sed "s|^.*:||"`
+  nmax=$(sqsget ${queue}/info/nproc ${host} 0)
 
   if [ "x${verbose}" = "xyes" ] ; then
     echo "sqsrunner ($$): ${nrun} of ${nmax} processes [${host}]"
   fi
 
-	# exit loop if above maximum
-	if [ ${nrun} -gt ${nmax} ] ; then
-		break
-	fi
+  # exit loop if above maximum
+  if [ ${nrun} -gt ${nmax} ] ; then
+    break
+  fi
 
   # retrieve first task from queue
   tid=`ls ${queue}/wait 2>/dev/null | sort -n | head -n 1`
@@ -108,12 +104,10 @@ while [ true ] ; do
   task=`cat ${queue}/wait/${tid}`
 
   # retrieve nice level of queue for host
-	nlvl=$(sqsget ${queue}/info/nice ${host} 0)
-  #nlvl=`cat ${queue}/info/nice | grep ${host} | sed "s|^.*:||"`
+  nlvl=$(sqsget ${queue}/info/nice ${host} 0)
 
   # retrieve ionice level of queue for host
-	#iolv=$(sqsget ${queue}/info/ionice ${host} 0)
-  #iolv=`cat ${queue}/info/ionice | grep ${host} | sed "s|^.*:||"`
+  #iolv=$(sqsget ${queue}/info/ionice ${host} 0)
 
   # move task to exec
   mv -f ${queue}/wait/${tid} ${queue}/exec/
