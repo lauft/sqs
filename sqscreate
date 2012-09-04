@@ -32,8 +32,8 @@ if [ -e "${queue}" ] ; then
   if [ "x${verbose}" = "xyes" ] ; then
     echo "sqscreate: queue already exists!"
   fi
-	
-	exit ${E_EXISTS}
+  
+  exit ${E_EXISTS}
 fi
 
 # creating queue if non-existent
@@ -54,7 +54,7 @@ touch ${queue}/info/hosts  || exit ${E_FAILURE}
 touch ${queue}/info/nproc  || exit ${E_FAILURE}
 touch ${queue}/info/nice   || exit ${E_FAILURE}
 touch ${queue}/info/ionice || exit ${E_FAILURE}
-	
+  
 # filling in default values
 echo "-1"                 > ${queue}/info/ntask
 echo "master=$(hostname)" > ${queue}/info/options
