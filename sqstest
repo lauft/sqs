@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/bash 
 
 #
 # Helper script for the SQS
@@ -29,12 +29,14 @@ fi
 echo "yes"
 
 # Check whether we can do passwordless connect
-echo -n "testing whether we can do passwordless connect on host... "
-#if ssh ${hostname} > /dev/null 2>&1 ; then
-#  echo "sqstest: host ${hostname} does not exist"
-#  exit ${E_FAILURE}
-#fi
-echo "skipped"
+echo -n "testing whether we can use pubkey on host... "
+if ! ssh -q -o ConnectionAttempts=1 -o PreferredAuthentications=publickey ${hostname} echo "" >/dev/null; then
+  echo "no"
+  echo "sqstest: please setup pubkey authentication with '${hostname}'"
+  exit ${E_FAILURE}
+fi
+
+echo "yes"
 
 # Check sqs installation on host
 echo "testing sqs installation on host..."
@@ -63,22 +65,43 @@ for bin in ${binlist}; do
 
   echo "yes"
 done
-echo "sqs installation is identical..."
+echo "sqs installation is identical."
+
+# Check whether version number matches
+thisversion=$(sqsconf get version 0)
+hostversion=$(ssh ${hostname} sqsconf get version 0)
+
+echo -n "testing whether host has same major version number (${thisversion})... "
+
+thismajor=${thisversion%%.*}
+hostmajor=${hostversion%%.*}
+
+if [ ${thismajor} -ne ${hostmajor} ] ; then
+  echo "no"
+  echo "sqstest: version mismatch (this: ${thisversion}, host: ${hostversion})"
+  exit ${E_FAILURE}
+fi
+
+echo "yes (${hostversion})"
 
 # Check whether we see the same queue
-echo -n "testing whether we see the same queue..."
+echo -n "testing whether we see the same queue... "
 key=$$
 touch $(sqsconf get vardir '')/${key}
 
 result=$(ssh ${hostname} ls $(sqsconf get vardir '')/${key} > /dev/null 2>&1; echo $?)
+
+rm -f $(sqsconf get vardir '')/${key}
+
 if [ "x${result}" != "x0" ] ; then
   echo "no"
   echo "sqstest: no access to common queue directory"
   exit ${E_FAILURE}
 fi
 
-rm -f $(sqsconf get vardir '')/${key}
-
 echo "yes"
+
+# All tests passed successfully
+echo "all test passed successfully"
 
 exit ${E_SUCCESS}
