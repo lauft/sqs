@@ -50,7 +50,7 @@ Options:
 
   --persist  make the queue persistent.
 
-  --busy     makt the queue a busy queue
+  --busy     make the queue a busy queue
 
   --logfile  redirect output of each process to a logfile '<target>.log'.
 
@@ -75,9 +75,9 @@ add_to_hostlist() {
   #echo "add_to_hostlist $*"
 
   # check host
-	if [ "$(hostname)" != ${1} ] ; then
+  if [ "$(hostname)" != ${1} ] ; then
     host ${1} >/dev/null 2>&1 || return 12
-	fi
+  fi
 
   # check process limit
   [[ ${2} =~ "."|[[:digit:]] ]] || return 13
@@ -187,7 +187,7 @@ while [ ${1:q} ]; do
           p=${1#*:}; p=${p%:*}
           n=${1##*:}
           ;;
-	      *:[[:digit:]]*  )
+        *:[[:digit:]]*  )
           m=${1%:*}
           p=${1#*:}
           n="."
@@ -317,7 +317,7 @@ fi
 
 if [ ${success} -gt 0 ] ; then
   # queue exists, shall we update?
-	updatequeue=${updateconfig}
+  updatequeue=${updateconfig}
 fi
 
 # Locking queue, unlocking SQS directory
@@ -327,8 +327,8 @@ sqsunlock ${vardir} ${lockkey} || exit $?
 # Setting queue options
 for opt in ${options} ; do
   key=${opt%=*}
-	val=${opt#*=}
-	sqssetopt ${vardir}/${queue} ${key} ${val}
+  val=${opt#*=}
+  sqssetopt ${vardir}/${queue} ${key} ${val}
 
 done
 
@@ -337,7 +337,7 @@ for host in ${hostlist} ; do
   m=${host%%:*}
   p=${host#*:}; p=${p%:*} # max processes
   n=${host##*:}           # nice 
-	i="."                   # ionice
+  i="."                   # ionice
 
   # try to retrieve previous value, if wildcard values are given
   if [ "${p}" = "." ] ; then
@@ -345,16 +345,16 @@ for host in ${hostlist} ; do
   fi
     
   if [ "${n}" = "." ] ; then
-		n=$(sqsget ${vardir}/${queue}/info/nice ${m} 0)
+    n=$(sqsget ${vardir}/${queue}/info/nice ${m} 0)
   fi
 
   if [ "${i}" = "." ] ; then
-		i=$(sqsget ${vardir}/${queue}/info/ionice ${m} 0)
+    i=$(sqsget ${vardir}/${queue}/info/ionice ${m} 0)
   fi
 
-	sqsset ${vardir}/${queue}/info/nproc  ${m} ${p}
-	sqsset ${vardir}/${queue}/info/nice   ${m} ${n}
-	sqsset ${vardir}/${queue}/info/ionice ${m} ${i}
+  sqsset ${vardir}/${queue}/info/nproc  ${m} ${p}
+  sqsset ${vardir}/${queue}/info/nice   ${m} ${n}
+  sqsset ${vardir}/${queue}/info/ionice ${m} ${i}
 
 done
 
