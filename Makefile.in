@@ -14,15 +14,7 @@ FILES=sqsconfig \
       sqscreate \
       sqsclose \
       sqsconf \
-      sqstest \
-      sqsadmin
-
-SQSADMIN=sqsadmin_head \
-         sqsadmin_list \
-         sqsadmin_remove \
-         sqsadmin_kill \
-         sqsadmin_utils \
-         sqsadmin_foot
+      sqstest
 
 SQSFILES=$(addprefix $(BINDIR)/,$(FILES))
 
@@ -36,9 +28,6 @@ install: $(BINDIR) $(VARDIR) $(SQSFILES)
 $(SETUP): Makefile.in sqsconfig.in
 	@echo "Re-Running 'configure'..."
 	@cat config.status 2>/dev/null | xargs ./configure
-
-sqsadmin: $(SQSADMIN)
-	@cat $(SQSADMIN) > sqsadmin
 
 $(BINDIR) $(VARDIR):
 	@mkdir -p $(VARDIR)
