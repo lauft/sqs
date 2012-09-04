@@ -1,4 +1,4 @@
-#! /bin/bash 
+#! /bin/bash
 
 #
 # Helper script for the SQS
@@ -28,7 +28,7 @@ fi
 
 echo "yes"
 
-# Check whether we can do passwordless connect
+# Check whether we can pubkey on host
 echo -n "testing whether we can use pubkey on host... "
 if ! ssh -q -o ConnectionAttempts=1 -o PreferredAuthentications=publickey ${hostname} echo "" >/dev/null; then
   echo "no"
@@ -90,8 +90,6 @@ key=$$
 touch $(sqsconf get vardir '')/${key}
 
 result=$(ssh ${hostname} ls $(sqsconf get vardir '')/${key} > /dev/null 2>&1; echo $?)
-
-rm -f $(sqsconf get vardir '')/${key}
 
 if [ "x${result}" != "x0" ] ; then
   echo "no"
