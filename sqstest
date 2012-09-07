@@ -55,7 +55,7 @@ binlist="sqs \
 
 for bin in ${binlist}; do
   echo -n "testing '${bin}'... "
-  result=$(ssh ${hostname} which ${bin} > /dev/null 2>&1; echo $?)
+  result=$(ssh ${hostname} type ${bin} > /dev/null 2>&1; echo $?)
 
   if [ "x${result}" != "x0" ] ; then
     echo "no"
@@ -100,6 +100,6 @@ fi
 echo "yes"
 
 # All tests passed successfully
-echo "all test passed successfully"
+echo "all tests passed successfully"
 
 exit ${E_SUCCESS}
