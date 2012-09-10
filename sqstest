@@ -7,99 +7,177 @@
 # 1 = hostname
 #
 
+# exit codes
 E_SUCCESS=0
 E_FAILURE=1
 
-if [ $# -ne 1 ] ; then
-  echo "sqstest: wrong argument count! ($*)" 
-  exit ${E_FAILURE}
-fi
+# verbosity levels
+V_NONE=0 # print none
+V_INFO=1 # print info only
+V_WARN=2 # print also warnings
 
-hostname=${1}
+################################################################################
+# helper functions                                                             #
+################################################################################
 
-# Check whether host does exist
-echo -n "testing whether host '${hostname}' does exist... "
+#_______________________________________________________________________________
+function msg() {
+  test ${verbose} -gt ${V_NONE} && echo ${1}
+}
 
-if ! host ${hostname} > /dev/null 2>&1 ; then
-  echo "no"
-  echo "sqstest: host ${hostname} does not exist"
-  exit ${E_FAILURE}
-fi
+#_______________________________________________________________________________
+function testmsg() {
+  test ${verbose} -gt ${V_NONE} && echo -n ${1}
+}
 
-echo "yes"
+#_______________________________________________________________________________
+function result() {
+  test ${verbose} -gt ${V_NONE} && echo ${1}
+}
 
-# Check whether we can pubkey on host
-echo -n "testing whether we can use pubkey on host... "
-if ! ssh -q -o ConnectionAttempts=1 -o PreferredAuthentications=publickey ${hostname} echo "" >/dev/null; then
-  echo "no"
-  echo "sqstest: please setup pubkey authentication with '${hostname}'"
-  exit ${E_FAILURE}
-fi
+#_______________________________________________________________________________
+function warn() {
+  test ${verbose} -gt ${V_INFO} && echo ${1} >&2
+}
 
-echo "yes"
+################################################################################
+# test functions                                                               #
+################################################################################
 
-# Check sqs installation on host
-echo "testing sqs installation on host..."
-binlist="sqs \
-         sqsrunner \
-         sqsclose \
-         sqsconf \
-         sqscreate \
-         sqslock \
-         sqsunlock \
-         sqsget \
-         sqsset \
-         sqsgetopt \
-         sqssetopt \
-         sqsupdate"
+#_______________________________________________________________________________
+function test_host() {
+  # Check whether host does exist
+  #
+  testmsg "testing whether host '${hostname}' does exist... "
+  if ! host ${hostname} > /dev/null 2>&1 ; then
+    result "no"
+    warn "sqstest: host ${hostname} does not exist"
+    return ${E_FAILURE}
+  fi 
+  result "yes"
+  return ${E_SUCCESS}
+} # test_host
 
-for bin in ${binlist}; do
-  echo -n "testing '${bin}'... "
-  result=$(ssh ${hostname} type ${bin} > /dev/null 2>&1; echo $?)
-
-  if [ "x${result}" != "x0" ] ; then
-    echo "no"
-    echo "sqstest: ${bin} not found on ${hostname}"
-    exit ${E_FAILURE}
+#_______________________________________________________________________________
+function test_pubkey() {
+  # Check whether we can pubkey on host
+  #
+  testmsg "testing whether we can use pubkey on host... "
+  if ! ssh -q -o ConnectionAttempts=1 -o PreferredAuthentications=publickey ${hostname} echo "" >/dev/null; then
+    result "no"
+    warn "sqstest: please setup pubkey authentication with '${hostname}'"
+    return ${E_FAILURE}
   fi
+  result "yes"
+  return ${E_SUCCESS}
+} # test_pubkey
 
-  echo "yes"
+#_______________________________________________________________________________
+function test_install() {
+  # Check sqs installation on host
+  #
+  msg "testing sqs installation on host..."
+  local binlist="sqs \
+                 sqsrunner \
+                 sqsclose \
+                 sqsconf \
+                 sqscreate \
+                 sqslock \
+                 sqsunlock \
+                 sqsget \
+                 sqsset \
+                 sqsgetopt \
+                 sqssetopt \
+                 sqsupdate"
+  for bin in ${binlist}; do
+    testmsg "testing '${bin}'... "
+    local result=$(ssh ${hostname} type ${bin} > /dev/null 2>&1; echo $?)
+    if [ "x${result}" != "x0" ] ; then
+      result "no"
+      msg "sqs installation is not identical"
+      warn "sqstest: '${bin}' not found on ${hostname}"
+      return ${E_FAILURE}
+    fi
+    result "yes"
+  done
+  msg "sqs installation is identical"
+  return ${E_SUCCESS}
+} # test_install
+
+#_______________________________________________________________________________
+function test_version() {
+  # Check whether version number matches
+  #
+  local thisversion=$(sqsconf get version 0)
+  local hostversion=$(ssh ${hostname} sqsconf get version 0)
+  testmsg "testing whether host has same major version number (${thisversion})... "
+  local thismajor=${thisversion%%.*}
+  local hostmajor=${hostversion%%.*}
+  if [ ${thismajor} -ne ${hostmajor} ] ; then
+    result "no"
+    warn "sqstest: version mismatch (this: ${thisversion}, host: ${hostversion})"
+    return ${E_FAILURE}
+  fi
+  result "yes (${hostversion})"
+  return ${E_SUCCESS}
+} # test_version
+
+#_______________________________________________________________________________
+function test_queue() {
+  # Check whether we see the same queue
+  #
+  testmsg "testing whether we see the same queue... "
+  local key=$$
+  local testfile=$(sqsconf get vardir '')/${key}
+  touch ${testfile}
+  local result=$(ssh ${hostname} ls $(sqsconf get vardir '')/${key} > /dev/null 2>&1; echo $?)
+  rm -f ${testfile}
+  if [ "x${result}" != "x0" ] ; then
+    result "no"
+    warn "sqstest: no access to common queue directory"
+    return ${E_FAILURE}
+  fi
+  result "yes"
+  return ${E_SUCCESS}
+} # test_queue
+
+################################################################################
+# script entry point                                                           #
+################################################################################
+
+# default values
+verbose=${V_NONE};
+
+# Parsing options
+while [ ${1:q} ]; do
+  case "${1}" in
+    --verbose )
+      ((verbose++))
+      ;;
+    --verbose=* )
+      verbose=${1##*=}
+      ;;
+    *)
+      hostname=${1}
+      ;;
+  esac
+  shift
 done
-echo "sqs installation is identical."
 
-# Check whether version number matches
-thisversion=$(sqsconf get version 0)
-hostversion=$(ssh ${hostname} sqsconf get version 0)
-
-echo -n "testing whether host has same major version number (${thisversion})... "
-
-thismajor=${thisversion%%.*}
-hostmajor=${hostversion%%.*}
-
-if [ ${thismajor} -ne ${hostmajor} ] ; then
-  echo "no"
-  echo "sqstest: version mismatch (this: ${thisversion}, host: ${hostversion})"
+if [ "x${hostname}" = "x" ] ; then
+  warn "sqstest: no hostname given!" 
   exit ${E_FAILURE}
 fi
 
-echo "yes (${hostversion})"
-
-# Check whether we see the same queue
-echo -n "testing whether we see the same queue... "
-key=$$
-touch $(sqsconf get vardir '')/${key}
-
-result=$(ssh ${hostname} ls $(sqsconf get vardir '')/${key} > /dev/null 2>&1; echo $?)
-
-if [ "x${result}" != "x0" ] ; then
-  echo "no"
-  echo "sqstest: no access to common queue directory"
-  exit ${E_FAILURE}
-fi
-
-echo "yes"
+test_host    || exit ${E_FAILURE}
+test_pubkey  || exit ${E_FAILURE}
+test_install || exit ${E_FAILURE}
+test_version || exit ${E_FAILURE}
+test_queue   || exit ${E_FAILURE}
 
 # All tests passed successfully
-echo "all tests passed successfully"
+msg "all tests passed successfully"
 
 exit ${E_SUCCESS}
+
+### EOF
