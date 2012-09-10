@@ -157,6 +157,10 @@ while [ ${1:q} ]; do
     --verbose=* )
       verbose=${1##*=}
       ;;
+    -* | --* )
+      echo "unkown option '${1}'"
+      exit 1
+      ;;
     *)
       hostname=${1}
       ;;
