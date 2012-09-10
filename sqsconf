@@ -19,12 +19,12 @@ E_FAILURE=1
 cfgfile=${0%/*}/sqsconfig
 
 if [ ! -e ${cfgfile} ] ; then
-  echo "sqsconf: cannot access sqsconfig (${cfgfile})"
+  echo "sqsconf: cannot access sqsconfig (${cfgfile})" >&2
   exit ${E_FAILURE}
 fi
 
 if [ $# -ne 3 ] ; then
-  echo "sqsconf: wrong argument count! ($*)" 
+  echo "sqsconf: wrong argument count! ($*)" >&2
   exit ${E_FAILURE}
 fi
 
@@ -48,7 +48,7 @@ elif [ "x${cmd}" = "xset" ] ; then
   mv -f ${cfgfile}.tmp ${cfgfile}        || exit $?
 else
   # invalid command
-  echo "sqsconf: unknown command '${cmd}'"
+  echo "sqsconf: unknown command '${cmd}'" >&2
   exit ${E_FAILURE}
 fi
 
