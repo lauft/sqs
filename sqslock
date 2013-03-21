@@ -1,15 +1,36 @@
 #!/bin/bash
 
-#
-# Helper script for the SQS
-# Locks directories to prevent race conditions
-# Locking requires a tag (which can identify the locking process)
-# Optionally a timeout can be set after which the lock try aborts
-# 
-# Returns  0 on success
-#         -1 on timeout
-#          1 on error
-#
+################################################################################
+#                                                                              #
+# This file is part of SQS.                                                    #
+#                                                                              #
+# SQS is free software: you can redistribute it and/or modify                  #
+# it under the terms of the GNU General Public License as published by         #
+# the Free Software Foundation, either version 3 of the License, or            #
+# (at your option) any later version.                                          #
+#                                                                              #
+# SQS is distributed in the hope that it will be useful,                       #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of               #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                #
+# GNU General Public License for more details.                                 #
+#                                                                              #
+# You should have received a copy of the GNU General Public License            #
+# along with SQS.  If not, see <http://www.gnu.org/licenses/>.                 #
+#                                                                              #
+################################################################################
+
+################################################################################
+#                                                                              #
+# Helper script for the SQS                                                    #
+# Locks directories to prevent race conditions                                 #
+# Locking requires a tag (which can identify the locking process)              #
+# Optionally a timeout can be set after which the lock try aborts              #
+#                                                                              #
+# Returns  0 on success                                                        #
+#         -1 on timeout                                                        #
+#          1 on error                                                          #
+#                                                                              #
+################################################################################
 
 if [ $# -lt 2 ] || [ $# -gt 3 ] ; then
   echo "sqslock: wrong argument count! ($*)"

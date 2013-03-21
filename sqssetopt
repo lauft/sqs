@@ -1,17 +1,38 @@
 #!/bin/bash
 
-#
-# Helper script for the SQS
-# Sets a value for an option in <queue>/info/options.
-# Previous entries for this option are overwritten.
-#
-# WARNING: script does not lock <queue>! Locking and release of the
-#          queue has to be done by the caller!
-#
-# 1 = queue name
-# 2 = key
-# 3 = value
-#
+################################################################################
+#                                                                              #
+# This file is part of SQS.                                                    #
+#                                                                              #
+# SQS is free software: you can redistribute it and/or modify                  #
+# it under the terms of the GNU General Public License as published by         #
+# the Free Software Foundation, either version 3 of the License, or            #
+# (at your option) any later version.                                          #
+#                                                                              #
+# SQS is distributed in the hope that it will be useful,                       #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of               #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                #
+# GNU General Public License for more details.                                 #
+#                                                                              #
+# You should have received a copy of the GNU General Public License            #
+# along with SQS.  If not, see <http://www.gnu.org/licenses/>.                 #
+#                                                                              #
+################################################################################
+
+################################################################################
+#                                                                              #
+# Helper script for the SQS                                                    #
+# Sets a value for an option in <queue>/info/options.                          #
+# Previous entries for this option are overwritten.                            #
+#                                                                              #
+# WARNING: script does not lock <queue>! Locking and release of the            #
+#          queue has to be done by the caller!                                 #
+#                                                                              #
+# 1 = queue name                                                               #
+# 2 = key                                                                      #
+# 3 = value                                                                    #
+#                                                                              #
+################################################################################
 
 E_SUCCESS=0
 E_FAILURE=1
