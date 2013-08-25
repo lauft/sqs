@@ -62,6 +62,10 @@ $(BINDIR)/%: %
 	@cp -v $< $@	
 	@chmod 755 $@	
 
+uninstall:
+	@echo rm -fv $(BINDIR)/sqs*
+	@echo rm -rfv $(VARDIR)
+
 clean:
 	@rm -f Makefile
 	@rm -f sqsconf
