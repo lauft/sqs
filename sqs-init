@@ -80,6 +80,6 @@ touch ${queue}/info/ionice || exit ${E_FAILURE}
 # filling in default values
 echo "-1"                 > ${queue}/info/ntask
 echo "master=$(hostname)" > ${queue}/info/options
-echo "run"                > ${queue}/info/state
+echo "halt"               > ${queue}/info/state
 
 exit ${E_SUCCESS}
