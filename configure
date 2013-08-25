@@ -124,7 +124,7 @@ rm -f $logfile
 #
 # echo %%%  Parsing options
 #
-while [ ${1:q} ]; do
+while [ ${1} ]; do
     case "${1}" in
         --prefix )
             shift
