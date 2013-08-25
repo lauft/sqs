@@ -113,7 +113,7 @@ EOF
 #
 # echo %%% Some clean up
 #
-trapcmd="rm -f Makefile.tmp sqsconfig.tmp"
+trapcmd="rm -f Makefile.tmp sqsconf.tmp"
 trap "${trapcmd}; exit 1" 1 2 3 15
 trap "${trapcmd}" 0
 
@@ -169,8 +169,8 @@ done
 #
 MAKEIN=Makefile.in
 MAKEOUT=Makefile
-CONFIN=sqsconfig.in
-CONFOUT=sqsconfig
+CONFIN=sqsconf.in
+CONFOUT=sqsconf
 
 ######################################################################
 #
@@ -193,7 +193,7 @@ fi
 #
 if test "x${noact}" = "xno"; then
   cp -f ${MAKEIN} Makefile.tmp
-  cp -f ${CONFIN} sqsconfig.tmp
+  cp -f ${CONFIN} sqsconf.tmp
 fi
 
 ######################################################################
@@ -220,14 +220,13 @@ fi
 # echo %%% Writing files
 #
 #---------------------------------------------------------------------
-# config/Makefile.config
 #
 message "Writing ${CONFOUT}"
 sed -e "s|@prefix@|${prefix}|" \
     -e "s|@bindir@|${bindir}|" \
     -e "s|@vardir@|${vardir}|" \
-    < sqsconfig.tmp > ${CONFOUT}
-rm -f sqsconfig.tmp
+    < sqsconf.tmp > ${CONFOUT}
+rm -f sqsconf.tmp
 
 result "done"
 

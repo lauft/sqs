@@ -23,30 +23,30 @@ PREFIX=@prefix@
 BINDIR=@bindir@
 VARDIR=@vardir@
 
-FILES=sqsconfig \
+FILES=sqsconf \
       sqs \
       sqsrunner \
       sqslock \
       sqsunlock \
-      sqssetopt \
-      sqsgetopt \
-      sqsset \
-      sqsget \
-      sqscreate \
-      sqsclose \
-      sqsconf \
+      sqs-setopt \
+      sqs-getopt \
+      sqs-set \
+      sqs-get \
+      sqs-init \
+      sqs-close \
+      sqs-config \
       sqstest
 
 SQSFILES=$(addprefix $(BINDIR)/,$(FILES))
 
-SETUP=sqsconfig
+SETUP=sqsconf
 
 default: $(SETUP)
 	@echo "Run 'make install' to install SQS"
 
 install: $(BINDIR) $(VARDIR) $(SQSFILES)
 
-$(SETUP): Makefile.in sqsconfig.in
+$(SETUP): Makefile.in sqsconf.in
 	@echo "Re-Running 'configure'..."
 	@cat config.status 2>/dev/null | xargs ./configure
 
@@ -54,7 +54,7 @@ $(BINDIR) $(VARDIR):
 	@mkdir -p $(VARDIR)
 	@mkdir -p $(BINDIR)
 
-$(BINDIR)/sqsconfig: sqsconfig
+$(BINDIR)/sqsconf: sqsconf
 	@cp -v $< $@
 	@chmod 644 $@	
 
@@ -64,4 +64,4 @@ $(BINDIR)/%: %
 
 clean:
 	@rm -f Makefile
-	@rm -f sqsconfig
+	@rm -f sqsconf
