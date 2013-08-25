@@ -25,9 +25,6 @@ VARDIR=@vardir@
 
 FILES=sqsconf \
       sqs \
-      sqsrunner \
-      sqslock \
-      sqsunlock \
       sqs-setopt \
       sqs-getopt \
       sqs-set \
@@ -35,6 +32,9 @@ FILES=sqsconf \
       sqs-init \
       sqs-close \
       sqs-config \
+      sqsrunner \
+      sqslock \
+      sqsunlock \
       sqstest
 
 SQSFILES=$(addprefix $(BINDIR)/,$(FILES))
@@ -63,8 +63,8 @@ $(BINDIR)/%: %
 	@chmod 755 $@	
 
 uninstall:
-	@echo rm -fv $(BINDIR)/sqs*
-	@echo rm -rfv $(VARDIR)
+	@rm -fv $(BINDIR)/sqs*
+	@rm -rfv $(VARDIR)
 
 clean:
 	@rm -f Makefile
