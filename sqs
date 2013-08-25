@@ -26,396 +26,42 @@
 #                                                                              #
 ################################################################################
 
-# load config file
-source sqsconfig
+progname=${0}
+command=${1}
+shift
 
-queue=""
-targets=""
-call=""
-#verbose="no"
-host=$(hostname)
+function list_commands()
+{
+echo "Available commands:"
+  for cmd in $(ls ${progname}-*); do
+    echo "- ${cmd#${progname}-}"
+  done
+}
 
-#_______________________________________________________________________________
-usage() {
-PROGNAME=${0##*/}
+function print_usage()
+{
 cat << EOF
 SQS, a simple queuing system.
 
-Usage: $PROGNAME [OPTIONS] --call <CALL> [TARGETS]
+Usage: ${progname} <command> [<options/arguments>]
 
-Options:
-  --call <CALL>
-             define the program call.
-
-  --queue <QUEUE>
-             specify the name of the queue. If not given, the name of the 
-             program call (without parameters) is taken.
-  
-  --config <FILE>
-             read host specifications from <FILE>. Host specifications are 
-             expected in the format <hostname>:<processes>:<nice>:<ionice>.
-             Lines beginning with '#' are ignored.
-             
-  --host     specify host (hostname[:processes[:nicelevel[:ionicelevel]]]).
-
-  --nproc    maximum number of parallel processes for host [hostname:processes].
-             if hostname is omitted, current host is set.
-
-  --nice     set nice level for queue for host [hostname:nicelevel].
-             if hostname is omitted, name of current host is set.
-  
-  --ionice   set nice level for queue for host [hostname:ionicelevel].
-             if hostname is omitted, name of current host is set.
-
-  --update   update the queue if it already exists
-
-  --no-update
-             do not update the queue if it already exists
-
-  --create-only  
-             only create the queue.
-
-  --persist  make the queue persistent.
-
-  --busy     make the queue a busy queue
-
-  --logfile  redirect output of each process to a logfile '<target>.log'.
-
-  --dry-run  do not process anything, just print what would happen.
-
-  --verbose  give informational output.
 EOF
+list_commands
 }
 
-#_______________________________________________________________________________
-add_to_hostlist() {
-  # add host specification to hostlist
-  # 1 = hostname
-  # 2 = maximum number of processes
-  # 3 = nicelevel
-  #
-  if [ $# -ne 3 ] ; then
-    echo "sqs[add_to_hostlist]: wrong argument count"
-    return 1
-  fi
 
-  #echo "add_to_hostlist $*"
-
-  # check host
-  if [ "$(hostname)" != ${1} ] ; then
-    host ${1} >/dev/null 2>&1 || return 12
-  fi
-
-  # check process limit
-  [[ ${2} =~ "."|[[:digit:]] ]] || return 13
-
-  # check nice level
-  [[ ${3} =~ "."|[-]?[[:digit:]] ]] || return 14
-
-  local mm=${1}
-  local pp=${2}
-  local nn=${3}
-
-  # try to retrieve previous if default values are given
-  if [ "${2}" = "." ] ; then
-    tmp=`echo ${hostlist} | tr ' ' '\n' | grep ${mm}`
-    test "x${tmp}" = "x" || pp=${tmp#*:} ; pp=${pp%:*}
-  fi
-
-  if [ "${3}" = "." ] ; then
-    tmp=`echo ${hostlist} | tr ' ' '\n' | grep ${mm}`
-    test "x${tmp}" = "x" || nn=${tmp##*:} ; nn=${nn%;}
-  fi
-
-  # delete any previous occurrence of this host
-  hostlist=`echo ${hostlist} | sed "s|${mm}:[0-9]*:[-]*[0-9]*;||g"`  
-  # add new host specification
-  hostlist="${mm}:${pp}:${nn} ${hostlist}"
-
-  return 0
-} # add_to_hostlist
-
-#_______________________________________________________________________________
-read_config()
-{
-  # read host specifications from config file
-  #
-  file=${1}
-
-  if ! [ -e ${file} ] ; then
-    echo "Config file '${file}' is inaccessible!"
-    return 1
-  fi
-
-  local m;
-  local p;
-  local n;
-
-  for hconf in $(grep -v "#" ${file}) ; do
-    m=${hconf%%:*}
-    p=${hconf#*:}; p=${p%:*}
-    n=${hconf##*:}
-    
-    add_to_hostlist ${m} ${p} ${n}
-  done
-
-  return 0
-} # read_config
-
-################################################################################
-#
-# script entry point
-#
-
-# Parsing options
-while [ ${1:q} ]; do
-  case "${1}" in
-    --call )
-      shift
-      call=${1}
-      ;;
-    --queue )
-      shift
-      queue=${1}
-      ;;
-    --nproc )
-      shift
-      case "${1}" in
-        *:[[:digit:]]*)
-          m=${1%:*}
-          p=${1#*:}
-          ;;
-        [[:digit:]]*)      
-          m=${host}
-          p=${1}
-          ;;
-      esac
-      add_to_hostlist ${m} ${p} "." || { ec=$?; usage ; exit ${ec}; }
-      ;;
-    --nice )
-      shift
-      case "${1}" in
-        *:[[:digit:]]*)
-          m=${1%:*}
-          n=${1#*:}
-          ;;          
-        [[:digit:]]*)      
-          m=${host}
-          n=${1}
-          ;;
-      esac
-      add_to_hostlist ${m} "." ${n} || { ec=$?; usage ; exit ${ec}; }
-      ;;
-    --host )
-      shift
-      case "${1}" in
-        *:[[:digit:]]*:[[:digit:]]* )
-          m=${1%%:*}
-          p=${1#*:}; p=${p%:*}
-          n=${1##*:}
-          ;;
-        *:[[:digit:]]*  )
-          m=${1%:*}
-          p=${1#*:}
-          n="."
-          ;;
-        [[:digit:]]*:[[:digit:]]* | .:[[:digit:]]* | [[:digit:]]*:. )
-          m=${host}
-          p=${1%:*}
-          n=${1#*:}
-          ;;
-        [[:digit:]]* )
-          m=${host}
-          p=${1}
-          n="."
-          ;;
-        *)
-          m=${1}
-          p="."
-          n="."
-          ;;
-      esac
-      add_to_hostlist ${m} ${p} ${n} || { ec=$? ; usage ; exit ${ec} ; }
-      ;;
-    --config )
-      shift
-      read_config ${1} || exit $?
-      ;;
-    --persist )
-      options="${options} persist=yes"
-      ;;
-    --busy )
-      options="${options} busy=yes"
-      ;;
-    --create-only )
-      createonly="yes"
-      ;;
-    --dry-run )
-      dryrun="yes"
-      ;;
-    --verbose )
-      verbose="yes"
-      ;;
-    --logfile )
-      echo "logfile option not yet supported!"
-      ;;
-    --help | -h )
-      usage
-      exit
-      ;;
-    -* )
-      echo "unknown option ${1}"
-      usage
-      exit
-      ;;
-    * )
-      targets="${targets} ${1}"
-      ;;
-  esac
-  shift    
-done
-
-# export verbosity
-if [ "x${verbose}" != "x" ] ; then
-  export verbose
+if [ "x${command}" == "x" ]; then
+  echo "no command given!"
+  echo "available commands:"
+  list_commands
+  exit 1
 fi
 
-# generate lock key
-lockkey="${host}.$$"
-
-# create queue name if not yet specified
-if [ "x${queue}" = "x" ] ; then
-  if [ "x${call}" = "x" ] ; then
-    echo "sqs: no call specified!"
-    usage
-    exit 1
-  fi
-
-  if ! which ${call%% *} >/dev/null 2>&1 ; then
-    echo "sqs: program call '${call%% *}' is not accessible!"
-    exit 2
-  fi
-
-  queue=${call%% *}
-  queue=${queue##*/}
+if [ ! -x "${progname}-${command}" ] ; then
+  echo "unknown command '${command}'!"
+  exit 2
 fi
 
-# build tasklist
-if [ "x${targets}" = "x" ] ; then
-  tasklist="${call}"
-else
-  for target in ${targets} ; do
-    tasklist="${tasklist};${call} ${target}"
-  done
-fi
+${progname}-${command} $*
 
-tasklist=${tasklist#;}
-hostlist=${hostlist% }
-hostlist=${hostlist# }
-
-# default for hostlist
-if [ "x${hostlist}" = "x" ] ; then
-  hostlist="${host}:.:."
-fi
-
-# if dry run, stop here
-if [ "x${dryrun}" = "xyes" ] ; then
-  echo "call : ${call}"
-  echo "queue: ${queue}"
-  echo -n "hosts: "; echo "${hostlist}" | sed -e "s| |\n       |g"
-  echo "tasks: ${tasklist}" | sed -e "s|;|\n       |g"
-  exit 0
-fi
-
-# TODO: add traps
-
-sqslock ${vardir} ${lockkey} || exit $?
-
-# Creating queue
-sqscreate "${vardir}/${queue}" ; success=$?
-
-if [ ${success} -lt 0 ] ; then
-  exit ${success}
-fi
-
-if [ ${success} -gt 0 ] ; then
-  # queue exists, shall we update?
-  updatequeue=${updateconfig}
-fi
-
-# Locking queue, unlocking SQS directory
-sqslock ${vardir}/${queue} ${lockkey} || exit $?
-sqsunlock ${vardir} ${lockkey} || exit $?
-
-# Setting queue options
-for opt in ${options} ; do
-  key=${opt%=*}
-  val=${opt#*=}
-  sqssetopt ${vardir}/${queue} ${key} ${val}
-
-done
-
-# Enter host settings
-for host in ${hostlist} ; do
-  m=${host%%:*}
-  p=${host#*:}; p=${p%:*} # max processes
-  n=${host##*:}           # nice 
-  i="."                   # ionice
-
-  # try to retrieve previous value, if wildcard values are given
-  if [ "${p}" = "." ] ; then
-    p=$(sqsget ${vardir}/${queue}/info/nproc ${m} 1)
-  fi
-    
-  if [ "${n}" = "." ] ; then
-    n=$(sqsget ${vardir}/${queue}/info/nice ${m} 0)
-  fi
-
-  if [ "${i}" = "." ] ; then
-    i=$(sqsget ${vardir}/${queue}/info/ionice ${m} 0)
-  fi
-
-  sqsset ${vardir}/${queue}/info/nproc  ${m} ${p}
-  sqsset ${vardir}/${queue}/info/nice   ${m} ${n}
-  sqsset ${vardir}/${queue}/info/ionice ${m} ${i}
-
-done
-
-# Adding tasks
-separator=${IFS} ; IFS=";"
-
-for task in ${tasklist} ; do
-  i=$(cat ${vardir}/${queue}/info/ntask)
-  ((i++))
-  echo "sqs: add task ${i} to queue '${queue}': '${task}'"
-  echo ${task} > ${vardir}/${queue}/wait/${i}
-  echo ${i}    > ${vardir}/${queue}/info/ntask
-done
-
-IFS=${separator}
-
-sqsunlock ${vardir}/${queue} ${lockkey} || exit $?
-
-if [ "x${createonly}" != "xyes" ] ; then
-  #separator=$IFS ; IFS=";"
-
-  for host in ${hostlist} ; do
-    host=${host%%:*}
-    # seed sqsrunner
-    if [ "x${verbose}" = "xyes" ] ; then
-      echo "sqs: seeding runners on '${host}'!"
-    fi
-
-    if [ "${host}" = "$(hostname)" ] ; then
-      sqsrunner ${vardir}/${queue} &
-    else 
-      ssh ${host} "verbose=${verbose} sqsrunner ${vardir}/${queue}" &
-    fi
-  done
-
-  #IFS=${separator}
-fi
-
-if [ "x${verbose}" = "xyes" ] ; then
-  echo "sqs: finished!"
-fi
+# EOF
