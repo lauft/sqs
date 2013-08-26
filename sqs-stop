@@ -1,0 +1,53 @@
+#!/bin/bash
+
+################################################################################
+# SQS - a simple queuing system                                                #
+# Copyright (C) 2012 by Thomas Lauf                                            #
+#                                                                              #
+# This file is part of SQS.                                                    #
+#                                                                              #
+# SQS is free software: you can redistribute it and/or modify                  #
+# it under the terms of the GNU General Public License as published by         #
+# the Free Software Foundation, either version 3 of the License, or            #
+# (at your option) any later version.                                          #
+#                                                                              #
+# SQS is distributed in the hope that it will be useful,                       #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of               #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                #
+# GNU General Public License for more details.                                 #
+#                                                                              #
+# You should have received a copy of the GNU General Public License            #
+# along with SQS.  If not, see <http://www.gnu.org/licenses/>.                 #
+#                                                                              #
+################################################################################
+
+################################################################################
+#                                                                              #
+# Helper script for the SQS                                                    #
+# Stops the processing of the specified queue                                  #
+#                                                                              #
+# WARNING: script does not lock <queue>! Locking and release of the            #
+#          queue has to be done by the caller!                                 #
+#                                                                              #
+# 1 = queue                                                                    #
+#                                                                              #
+################################################################################
+
+if [ $# -ne 1 ] ; then
+  echo "sqs-stop: wrong argument count! ($*)" 
+  exit 1
+fi
+
+queue=${1}
+
+if [ ! -e ${queue} ] ; then
+  echo "sqs-stop: Error, invalid queue '${queue}'"
+  exit 2
+fi
+
+# set process count for all hosts to 0
+# Force flag? -> Send terminate signal to runners?
+
+exit 0
+
+### EOF
