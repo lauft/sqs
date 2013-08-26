@@ -24,7 +24,7 @@
 ################################################################################
 #                                                                              #
 # Helper script for the SQS                                                    #
-# Creates a new queue directory.                                               #
+# Initializes a new queue directory.                                           #
 #                                                                              #
 # WARNING: script does not lock <vardir>! Locking and release of the           #
 #          directory containing the queues has to be done by the caller!       #
@@ -44,7 +44,7 @@ E_EXISTS=1
 E_FAILURE=-1
 
 if [ $# -ne 1 ] ; then
-  echo "sqscreate: wrong argument count! ($*)"
+  echo "sqs-init: wrong argument count! ($*)"
   exit 1
 fi
 
@@ -53,14 +53,14 @@ queue=${1}
 # checking whether queue already exists
 if [ -e "${queue}" ] ; then
   if [ "x${verbose}" = "xyes" ] ; then
-    echo "sqscreate: queue already exists!"
+    echo "sqs-init: queue already exists!"
   fi
   exit ${E_EXISTS}
 fi
 
 # creating queue if non-existent
 if [ "x${verbose}" = "xyes" ] ; then
-  echo "sqscreate: queue does not exist, creating new queue!"
+  echo "sqs-init: queue does not exist, creating new queue!"
 fi
 
 mkdir ${queue} || exit ${E_FAILURE}
