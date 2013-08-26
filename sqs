@@ -47,6 +47,9 @@ Usage: ${progname##*/} <command> [<options/arguments>]
 
 EOF
 list_commands
+cat <<EOF
+Call ${progname##*/} <command> --help for details about a specific command
+EOF
 }
 
 if [[ "x${command}" == "xhelp" || "x${command}" == "x--help" ]] ; then
