@@ -36,7 +36,7 @@
 ################################################################################
 
 if [ $# -ne 3 ] ; then
-  echo "sqsget: wrong argument count! ($*)" 
+  echo "sqs-get: wrong argument count! ($*)" 
   exit 1
 fi
 
@@ -45,7 +45,7 @@ host=${2}
 default=${3}
 
 if [ ! -e ${file} ] ; then
-  echo "sqsget: Error, invalid filename '${file}'"
+  echo "sqs-get: Error, invalid filename '${file}'"
   exit 2
 fi
 
