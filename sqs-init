@@ -48,12 +48,19 @@ if [ $# -ne 1 ] ; then
   exit 1
 fi
 
+vardir=$(sqs-config get vardir "")
+
+if [ "x${vardir}" == "x" ] ; then
+  echo "sqs-init: no vardir!"
+  exit ${E_FAILURE}
+fi
+
 queue=${1}
 
 # checking whether queue already exists
-if [ -e "${queue}" ] ; then
+if [ -e "${vardir}/${queue}" ] ; then
   if [ "x${verbose}" = "xyes" ] ; then
-    echo "sqs-init: queue already exists!"
+    echo "sqs-init: queue '${queue}' already exists!"
   fi
   exit ${E_EXISTS}
 fi
@@ -63,23 +70,23 @@ if [ "x${verbose}" = "xyes" ] ; then
   echo "sqs-init: queue does not exist, creating new queue!"
 fi
 
-mkdir ${queue} || exit ${E_FAILURE}
+mkdir ${vardir}/${queue} || exit ${E_FAILURE}
 
 # creating subfolders
-mkdir ${queue}/wait || exit ${E_FAILURE}
-mkdir ${queue}/exec || exit ${E_FAILURE}
-mkdir ${queue}/proc || exit ${E_FAILURE}
-mkdir ${queue}/info || exit ${E_FAILURE}
+mkdir ${vardir}/${queue}/wait || exit ${E_FAILURE}
+mkdir ${vardir}/${queue}/exec || exit ${E_FAILURE}
+mkdir ${vardir}/${queue}/proc || exit ${E_FAILURE}
+mkdir ${vardir}/${queue}/info || exit ${E_FAILURE}
 
 # creating info files
-touch ${queue}/info/hosts  || exit ${E_FAILURE}
-touch ${queue}/info/nproc  || exit ${E_FAILURE}
-touch ${queue}/info/nice   || exit ${E_FAILURE}
-touch ${queue}/info/ionice || exit ${E_FAILURE}
+touch ${vardir}/${queue}/info/hosts  || exit ${E_FAILURE}
+touch ${vardir}/${queue}/info/nproc  || exit ${E_FAILURE}
+touch ${vardir}/${queue}/info/nice   || exit ${E_FAILURE}
+touch ${vardir}/${queue}/info/ionice || exit ${E_FAILURE}
 
 # filling in default values
-echo "-1"                 > ${queue}/info/ntask
-echo "master=$(hostname)" > ${queue}/info/options
-echo "halt"               > ${queue}/info/state
+echo "-1"                 > ${vardir}/${queue}/info/ntask
+echo "master=$(hostname)" > ${vardir}/${queue}/info/options
+echo "halt"               > ${vardir}/${queue}/info/state
 
 exit ${E_SUCCESS}
