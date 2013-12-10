@@ -93,7 +93,7 @@ while [ true ] ; do
   fi
 
   # retrieve first task from queue
-  tid=`ls ${queue}/wait 2>/dev/null | sort -n | head -n 1`
+  tid=$(ls ${queue}/wait 2>/dev/null | sort -n | head -n 1)
 
   if [ "x${tid}" = "x" ] ; then
     if [ "x${verbose}" = "xyes" ] ; then
@@ -124,7 +124,7 @@ while [ true ] ; do
     fi
   fi
 
-  task=`cat ${queue}/wait/${tid}`
+  task=$(cat ${queue}/wait/${tid})
 
   # retrieve nice level of queue for host
   nlvl=$(sqsget ${queue}/info/nice ${host} 0)

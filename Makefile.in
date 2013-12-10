@@ -25,13 +25,7 @@ VARDIR=@vardir@
 
 FILES=sqsconf \
       sqs \
-      sqs-setopt \
-      sqs-getopt \
-      sqs-set \
-      sqs-get \
-      sqs-init \
-      sqs-close \
-      sqs-config \
+      $(wildcard sqs-*) \
       sqsrunner \
       sqslock \
       sqsunlock \
