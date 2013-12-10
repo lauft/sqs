@@ -31,8 +31,8 @@
 # in the format <key>=<value>                                                  #
 #                                                                              #
 # USAGE:                                                                       #
-#   sqsconf get KEY DEF                                                        #
-#   sqsconf set KEY VAL                                                        #
+#   sqs-config get KEY DEF                                                     #
+#   sqs-config set KEY VAL                                                     #
 #                                                                              #
 ################################################################################
 
@@ -40,15 +40,15 @@
 E_SUCCESS=0
 E_FAILURE=1
 
-cfgfile=${0%/*}/sqsconfig
+cfgfile=${0%/*}/sqsconf
 
 if [ ! -e ${cfgfile} ] ; then
-  echo "sqsconf: cannot access sqsconfig (${cfgfile})" >&2
+  echo "sqs-config: cannot access config file (${cfgfile})" >&2
   exit ${E_FAILURE}
 fi
 
 if [ $# -ne 3 ] ; then
-  echo "sqsconf: wrong argument count! ($*)" >&2
+  echo "sqs-config: wrong argument count! ($*)" >&2
   exit ${E_FAILURE}
 fi
 
@@ -72,7 +72,7 @@ elif [ "x${cmd}" = "xset" ] ; then
   mv -f ${cfgfile}.tmp ${cfgfile}        || exit $?
 else
   # invalid command
-  echo "sqsconf: unknown command '${cmd}'" >&2
+  echo "sqs-config: unknown command '${cmd}'" >&2
   exit ${E_FAILURE}
 fi
 
