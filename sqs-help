@@ -1,0 +1,169 @@
+#!/bin/bash
+
+################################################################################
+# SQS - a simple queuing system                                                #
+# Copyright (C) 2012 by Thomas Lauf                                            #
+#                                                                              #
+# This file is part of SQS.                                                    #
+#                                                                              #
+# SQS is free software: you can redistribute it and/or modify                  #
+# it under the terms of the GNU General Public License as published by         #
+# the Free Software Foundation, either version 3 of the License, or            #
+# (at your option) any later version.                                          #
+#                                                                              #
+# SQS is distributed in the hope that it will be useful,                       #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of               #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                #
+# GNU General Public License for more details.                                 #
+#                                                                              #
+# You should have received a copy of the GNU General Public License            #
+# along with SQS.  If not, see <http://www.gnu.org/licenses/>.                 #
+#                                                                              #
+################################################################################
+
+################################################################################
+#                                                                              #
+# Helper script for the SQS                                                    #
+#                                                                              #
+# A generic help module                                                        #
+#                                                                              #
+# This scripts expects to be called like this                                  #
+#                                                                              #
+# sqs help [<command>]                                                         #
+#                                                                              #
+# It parses the command and calls the script                                   #
+#                                                                              #
+# sqs-<command> --help                                                         #
+#                                                                              #
+# If called with no <command>, it scans the directory it resides in for files  #
+# with the same prefix 'sqs' and calls                                         #
+#                                                                              #
+# sqs-<suffix> --describe                                                      #
+#                                                                              #
+# on each and lists the result                                                 #
+#                                                                              #
+################################################################################
+
+progname=${0}
+progdir=${progname%/*}
+progbase=${progname#${progdir}}
+progbase=${progbase%%-*}
+
+source ${progdir}/${progbase}common
+
+#_______________________________________________________________________________
+function print_help()
+{
+  # print help about this command
+  cat <<EOF
+NAME
+       ${0##*/} - Display help information about ${progbase} commands
+
+SYNOPSIS
+       ${0##*/} [COMMAND] 
+
+DESCRIPTION
+       With no COMMAND given, a list of available commands along with a short
+       description is printed on the standard output.
+
+       If a command is given, the manual page for that command is brought up by
+       calling the given command with the option --help.
+
+   Exit status
+       0  if everything OK,
+       1  else.
+
+AUTHOR
+       Written by Thomas Lauf (lauf.thomas@tngtech.com)
+
+SQS
+       Part of the sqs suite
+EOF
+}
+
+#_______________________________________________________________________________
+function print_descr()
+{
+  # a one-liner about this command
+  echo "Print help for commands"
+}
+
+#_______________________________________________________________________________
+function list_commands()
+{
+  cmd_list=($(ls ${progdir}/${progbase}-*))
+  maxlen=0
+  spaces="                              "
+  for command in ${cmd_list[@]} ; do
+    cmdname=${command#*${progbase}-}
+    len=${#cmdname}
+    if [ "${len}" -gt "${maxlen}" ] ; then
+      maxlen=${len}
+    fi
+  done
+
+  spaces=${spaces:0:${maxlen}}
+
+  for command in ${cmd_list[@]} ; do
+    cmdname=${command#*${progbase}-}
+    echo -n " - ${cmdname}"
+    len=${#cmdname}
+    ((len=maxlen-len))
+    echo -n "${spaces:0:${len}}  "
+    ${command} --describe
+  done
+}
+
+#_______________________________________________________________________________
+function show_available_commands()
+{
+  info "available commands:"
+  list_commands
+}
+
+################################################################################
+# script entry point
+################################################################################
+
+# parse options/arguments
+until [ -z "${1}" ] ; do
+  case "${1}" in
+    --describe)
+      print_descr
+      exit
+    ;;
+    --help)
+      print_help
+      exit
+    ;;
+    -*)
+      abort "Unknown option ${1}"
+    ;;
+    --*)
+      abort "Unknown option ${1}"
+    ;;
+    *)
+      command=${1}
+    ;;#!
+  esac
+  shift
+done
+
+if [ -z "${command}" ] ; then
+  show_available_commands
+  exit ${E_SUCCESS}
+fi
+
+cmdfile=${progname}-${command}
+
+if [ -e ${cmdfile} ] ; then
+  ${cmdfile} --help
+  exit ${E_SUCCESS}
+fi
+
+error "unknown command '${command}'"
+show_available_commands
+
+exit ${E_FAILURE}
+
+### EOF
