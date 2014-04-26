@@ -1,0 +1,67 @@
+#!/bin/bash
+
+#
+# sqscommon
+# common functionality for the SQS suite
+#
+
+E_SUCCESS=0
+E_FAILURE=1
+
+C_BLACK='\E[30m'
+C_RED='\E[31m'
+C_GREEN='\E[32m'
+C_YELLOW='\E[33m'
+C_BLUE='\E[34m'
+C_MAGENTA='\E[35m'
+C_CYAN='\E[36m'
+C_WHITE='\E[37m'
+
+C_NORM='\E[0m'
+C_WARN=${C_YELLOW}
+C_ERR=${C_RED}
+
+#_______________________________________________________________________________
+function debug()
+{
+  [ "x${DEBUG}" == "x" ] || echo -e $*
+}
+
+#_______________________________________________________________________________
+function info()
+{
+  echo -e $*
+}
+
+#_______________________________________________________________________________
+function warn()
+{
+  echo -e ${C_WARN}$*${C_NORM}
+}
+
+#_______________________________________________________________________________
+function error()
+{
+  echo -e ${C_ERR}$*${C_NORM}
+}
+
+#_______________________________________________________________________________
+function abort()
+{
+  error $*
+  exit ${E_ERROR}
+}
+
+#_______________________________________________________________________________
+function query()
+{
+  local question=${1}
+  local options=${2}
+
+  echo -ne "${question} "
+  [ "x${options}" == "x" ] || echo -ne "[${options}] " 
+  read 
+}
+
+### EOF
+
