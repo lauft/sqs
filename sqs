@@ -30,14 +30,6 @@ progname=${0}
 command=${1}
 shift
 
-function list_commands()
-{
-echo "Available commands:"
-  for cmd in $(ls ${progname}-*); do
-    echo "- ${cmd#${progname}-}"
-  done
-}
-
 function print_usage()
 {
 cat << EOF
@@ -45,21 +37,14 @@ SQS, a simple queuing system.
 
 Usage: ${progname##*/} <command> [<options/arguments>]
 
-EOF
-list_commands
-cat <<EOF
-Call ${progname##*/} <command> --help for details about a specific command
+Call '${progname##*/} help' for a list of available commands
+Call '${progname##*/} help <command>' for details about a specific command
 EOF
 }
 
-if [[ "x${command}" == "xhelp" || "x${command}" == "x--help" ]] ; then
-  print_usage
-  exit
-fi
-
 if [ "x${command}" == "x" ] ; then
   echo "no command given!"
-  list_commands
+  print_usage
   exit 1
 fi
 

@@ -35,7 +35,67 @@
 #                                                                              #
 ################################################################################
 
-if [ $# -ne 3 ] ; then
+progname=${0}
+progdir=${progname%/*}
+progbase=${progname#${progdir}}
+progbase=${progbase%%-*}
+
+source ${progdir}/${progbase}common
+
+function print_help()
+{
+  # print help about this command
+  cat <<EOF
+NAME
+       ${0##*/} - <short description>
+
+SYNOPSIS
+       ${0##*/} [OPTION]... [ARGUMENT]...
+
+DESCRIPTION
+       Place a description of the command here. Followed by details about the
+       individual options
+
+       -<short-option>, --<long-option>
+              Description of the specific option
+
+   Exit status
+       0  if OK,
+       1  else.
+
+AUTHOR
+       Written by <your name> (<your email>)
+
+<CLI>
+       Part of the <cli> suite
+EOF
+}
+
+function print_descr()
+{
+  # a one-liner about this command
+  echo "This is an example command"
+}
+
+# parse options/arguments
+until [ -z "${1}" ] ; do
+  case "${1}" in
+    --describe)
+      print_descr
+      exit
+      ;;
+    --help)
+      print_help
+      exit
+      ;;
+    -*)
+      abort "Unknown option '${1}'"
+      ;;
+  esac
+  shift
+done
+
+###############################################################################if [ $# -ne 3 ] ; then
   echo "sqs-get: wrong argument count! ($*)" 
   exit 1
 fi

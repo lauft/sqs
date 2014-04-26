@@ -154,7 +154,7 @@ if [ -z "${command}" ] ; then
   exit ${E_SUCCESS}
 fi
 
-cmdfile=${progname}-${command}
+cmdfile=${progdir}/${progbase}-${command}
 
 if [ -e ${cmdfile} ] ; then
   ${cmdfile} --help

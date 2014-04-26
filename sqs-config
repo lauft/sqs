@@ -40,7 +40,67 @@
 E_SUCCESS=0
 E_FAILURE=1
 
-cfgfile=${0%/*}/sqsconf
+progname=${0}
+progdir=${progname%/*}
+progbase=${progname#${progdir}}
+progbase=${progbase%%-*}
+
+source ${progdir}/${progbase}common
+
+function print_help()
+{
+  # print help about this command
+  cat <<EOF
+NAME
+       ${0##*/} - <short description>
+
+SYNOPSIS
+       ${0##*/} [OPTION]... [ARGUMENT]...
+
+DESCRIPTION
+       Place a description of the command here. Followed by details about the
+       individual options
+
+       -<short-option>, --<long-option>
+              Description of the specific option
+
+   Exit status
+       0  if OK,
+       1  else.
+
+AUTHOR
+       Written by <your name> (<your email>)
+
+<CLI>
+       Part of the <cli> suite
+EOF
+}
+
+function print_descr()
+{
+  # a one-liner about this command
+  echo "This is an example command"
+}
+
+# parse options/arguments
+until [ -z "${1}" ] ; do
+  case "${1}" in
+    --describe)
+      print_descr
+      exit
+      ;;
+    --help)
+      print_help
+      exit
+      ;;
+    -*)
+      abort "Unknown option '${1}'"
+      ;;
+  esac
+  shift
+done
+
+###############################################################################cfgfile=${0%/*}/sqsconf
 
 if [ ! -e ${cfgfile} ] ; then
   echo "sqs-config: cannot access config file (${cfgfile})" >&2
