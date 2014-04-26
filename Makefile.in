@@ -25,7 +25,8 @@ VARDIR=@vardir@
 
 FILES=sqsconf \
       sqs \
-      $(wildcard sqs-*) \
+      sqscommon \
+      $(filter-out $(wildcard sqs-*~), $(wildcard sqs-*)) \
       sqsrunner \
       sqslock \
       sqsunlock \
