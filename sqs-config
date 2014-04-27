@@ -79,7 +79,7 @@ EOF
 function print_descr()
 {
   # a one-liner about this command
-  echo "This is an example command"
+  echo "Get and set configuration."
 }
 
 # parse options/arguments

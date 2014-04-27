@@ -85,7 +85,7 @@ EOF
 function print_descr()
 {
   # a one-liner about this command
-  echo "Print help for commands"
+  echo "Print help for commands."
 }
 
 #_______________________________________________________________________________
