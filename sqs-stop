@@ -62,10 +62,10 @@ DESCRIPTION
        1  else.
 
 AUTHOR
-       Written by <your name> (<your email>)
+       Written by Thomas Lauf (lauf.thomas@tngtech.com)
 
-<CLI>
-       Part of the <cli> suite
+SQS
+       Part of the sqs suite
 EOF
 }
 
