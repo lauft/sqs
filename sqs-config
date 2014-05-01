@@ -94,30 +94,37 @@ until [ -z "${1}" ] ; do
       exit
       ;;
     -*)
-      abort "Unknown option '${1}'"
+      abort "sqs-config: unknown option '${1}'"
+      ;;
+    *)
+      if [ -z "${cmd}" ] ; then
+        cmd=${1};
+      elif [ -z "${key}" ] ; then
+        key=${1};
+      elif [ -z "${val}" ] ; then
+        val=${1}
+      else
+        abort "sqs-config: unknown argument '${1}'"
+      fi
       ;;
   esac
   shift
 done
 
-###############################################################################cfgfile=${0%/*}/sqsconf
+###############################################################################
+if [[ -z "${cmd}" || -z "${key}" || -z "${val}" ]] ; then
+  abort "sqs-config: wrong argument count: ${cmd} ${key} ${val}"
+fi
+
+cfgfile=${0%/*}/sqsconf
 
 if [ ! -e ${cfgfile} ] ; then
-  echo "sqs-config: cannot access config file (${cfgfile})" >&2
-  exit ${E_FAILURE}
+  abort "sqs-config: cannot access config file (${cfgfile})"
 fi
-
-if [ $# -ne 3 ] ; then
-  echo "sqs-config: wrong argument count! ($*)" >&2
-  exit ${E_FAILURE}
-fi
-
-cmd=${1}
-key=${2}
 
 if [ "x${cmd}" = "xget" ] ; then
   # retrieve a value from the config file
-  def=${3}
+  def=${val}
   val=$(grep ${key} ${cfgfile} 2>/dev/null)
   if [ "x${val}" = "x" ] ; then
     echo ${def}
@@ -132,8 +139,7 @@ elif [ "x${cmd}" = "xset" ] ; then
   mv -f ${cfgfile}.tmp ${cfgfile}        || exit $?
 else
   # invalid command
-  echo "sqs-config: unknown command '${cmd}'" >&2
-  exit ${E_FAILURE}
+  abort "sqs-config: unknown command '${cmd}'"
 fi
 
 exit ${E_SUCCESS}
