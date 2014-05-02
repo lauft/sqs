@@ -97,25 +97,24 @@ until [ -z "${1}" ] ; do
       exit
       ;;
     -*)
-      abort "Unknown option '${1}'"
+      abort "sqs-init: unknown option '${1}'"
       ;;
+    *)
+      queue=${1}
   esac
   shift
 done
 
-###############################################################################if [ $# -ne 1 ] ; then
-  echo "sqs-init: wrong argument count! ($*)"
-  exit 1
+###############################################################################
+if [ -z "${queue}" ] ; then
+  abort "sqs-init: no queue given!"
 fi
 
-vardir=$(sqs-config get vardir "")
+vardir=$(sqs-config get vardir .) 
 
-if [ "x${vardir}" == "x" ] ; then
-  echo "sqs-init: no vardir!"
-  exit ${E_FAILURE}
+if [ "x${vardir}" == "x." ] ; then
+  abort "sqs-init: no vardir!"
 fi
-
-queue=${1}
 
 # checking whether queue already exists
 if [ -e "${vardir}/${queue}" ] ; then
