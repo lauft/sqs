@@ -91,21 +91,21 @@ until [ -z "${1}" ] ; do
     -*)
       abort "Unknown option '${1}'"
       ;;
+    *)
+      if [ -z "${file}" ] ; then
+	file=${1}
+      elif [ -z "${host}" ] ; then
+	host=${1}
+      else
+	value=${1}
+      fi
   esac
   shift
 done
 
-###############################################################################if [ $# -ne 3 ] ; then
-  echo "sqsset: wrong argument count! ($*)" 
-  exit 1
-fi
-
-file=${1}
-host=${2}
-value=${3}
-
+###############################################################################
 if [ ! -e ${file} ] ; then
-  echo "sqsset: Error, invalid filename '${file}'"
+  echo "sqs-set: Error, invalid filename '${file}'"
   exit 2
 fi
 

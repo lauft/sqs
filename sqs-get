@@ -91,19 +91,19 @@ until [ -z "${1}" ] ; do
     -*)
       abort "Unknown option '${1}'"
       ;;
+    *)
+      if [ -z "${file}" ] ; then
+        file=${1}
+      elif [ -z "${host}" ] ; then
+	host=${1}
+      else
+	default=${1}
+      fi
   esac
   shift
 done
 
-###############################################################################if [ $# -ne 3 ] ; then
-  echo "sqs-get: wrong argument count! ($*)" 
-  exit 1
-fi
-
-file=${1}
-host=${2}
-default=${3}
-
+###############################################################################
 if [ ! -e ${file} ] ; then
   echo "sqs-get: Error, invalid filename '${file}'"
   exit 2
