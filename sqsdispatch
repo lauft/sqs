@@ -2,7 +2,7 @@
 
 ################################################################################
 # SQS - a simple queuing system                                                #
-# Copyright (C) 2011, 2012 by Thomas Lauf                                      #
+# Copyright (C) 2013 by Thomas Lauf                                            #
 #                                                                              #
 # This file is part of SQS.                                                    #
 #                                                                              #
@@ -21,15 +21,6 @@
 #                                                                              #
 ################################################################################
 
-################################################################################
-#                                                                              #
-# Helper script for the SQS                                                    #
-# Retrieves sucessively tasks from queue and waits for their completion        #
-#                                                                              #
-################################################################################
-
-verbose="yes"
-
 #_______________________________________________________________________________
 sqsr_add_to_runc()
 {
@@ -47,18 +38,11 @@ sqsr_add_to_runc()
   return
 }
 
-################################################################################
-# script entry point
-#
-if [ $# -ne 1 ] ; then
-  echo "sqsrunner ($$): wrong argument count! ($*) [$(hostname)]"
-  exit 1
-fi
-
+verbose="yes"
 queue=${1}
 
 if ! [ -e ${queue} ] ; then
-  echo "sqsrunner ($$): queue '${queue}' does not exist! [${host}]"
+  echo "sqsdispatch: queue '${queue}' does not exist! [${host}]"
   exit 2
 fi
 
@@ -67,62 +51,38 @@ key="${host}.$$"
 
 sqslock ${queue} ${key} || exit $?
 
-if [ "x${verbose}" = "xyes" ] ; then
-  echo "sqsrunner ($$): starting on ${host}."
-fi
+# retrieve runner count on host
+nrun=$(sqs get ${queue}/info/hosts ${host} 0)
+# retrieve number of allowed runners for host
+nmax=$(sqs get ${queue}/info/nproc ${host} 0)
 
-# retrieve first task from queue
-tid=$(ls ${queue}/wait 2>/dev/null | sort -n | head -n 1)
-  
-if [ "x${tid}" != "x" ] ; then
-  # read task
-  task=$(cat ${queue}/wait/${tid})
-    
-  # retrieve nice level of queue for host
-  nlvl=$(sqs get ${queue}/info/nice ${host} 0)
-  
-  # retrieve ionice level of queue for host
-  #iolv=$(sqs get ${queue}/info/ionice ${host} 0)
-  
-  # move task to exec
-  mv -f ${queue}/wait/${tid} ${queue}/exec/
-  
+while [ true ] ; do
+  # retrieve task count in queue
+  ntask=$(ls ${queue}/wait 2>/dev/null | wc -l)
+
+  if [ ${ntask} -eq 0 ] ; then
+    echo "sqsdispatch: no more tasks in queue"
+    break;
+  fi
+
   if [ "x${verbose}" = "xyes" ] ; then
-    echo "sqsrunner ($$): executing task ${tid}: '${task}' (nice ${nlvl}) [${host}]"
+    echo "sqsdispatch: ${nrun} of ${nmax} processes [${host}]"
   fi
   
-  # start task
-  nice -n ${nlvl} ${task} &
-  pid=$!
-  
-  # update proc
-  echo "${tid}" > ${queue}/proc/${host}.${pid}
-  
-  sqsunlock ${queue} ${key} || exit $?
-  
-  # wait for completion
-  wait ${pid}
-  
-  # remove completed task
-  sqslock ${queue} ${key} || exit $?
-  rm -f ${queue}/exec/${tid}
-  rm -f ${queue}/proc/${host}.${pid}
+  if [ ${nrun} -ge ${nmax} ] ; then
+    # exit loop if above maximum
+    break
+  else
+    # seed runner if below maximum
+    nrun=$(sqsr_add_to_runc 1)
+    sqsrunner ${queue} &
 
-  # decrement runner count
-  nrun=$(sqsr_add_to_runc -1)
-
-else
-  if [ "x${verbose}" = "xyes" ] ; then
-    echo "sqsrunner ($$): no more tasks in list [${host}]"
+    if [ "x${verbose}" = "xyes" ] ; then
+      echo "sqsdispatch: spawning new sqsrunner ($!) [${host}]"
+    fi
   fi
-fi
+done
 
 sqsunlock ${queue} ${key} || exit $?
 
-sqsdispatch ${queue} &
-
-if [ "x${verbose}" = "xyes" ] ; then
-  echo "sqsrunner ($$): exiting on ${host}"
-fi
-    
-### EOF
+exit 0
