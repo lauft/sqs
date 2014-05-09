@@ -21,15 +21,6 @@
 #                                                                              #
 ################################################################################
 
-################################################################################
-#                                                                              #
-# Helper script for the SQS                                                    #
-# Closes (i.e. removes) the given queue                                        #
-#                                                                              #
-# 1 = queue name                                                               #
-#                                                                              #
-################################################################################
-
 progname=${0%-*}
 progdir=${progname%/*}
 progbase=${progname#${progdir}}
@@ -48,11 +39,7 @@ SYNOPSIS
        ${0##*/} [OPTION]... [ARGUMENT]...
 
 DESCRIPTION
-       Place a description of the command here. Followed by details about the
-       individual options
-
-       -<short-option>, --<long-option>
-              Description of the specific option
+       Closes (i.e. removes) the given queue.
 
    Exit status
        0  if OK,
@@ -86,36 +73,35 @@ until [ -z "${1}" ] ; do
     -*)
       abort "Unknown option '${1}'"
       ;;
+    *)
+      queue=${1%/}
+      ;;
   esac
   shift
 done
 
 ###############################################################################
-if [ $# -ne 1 ] ; then
-  echo "sqsclose: wrong argument count! ($*)"
-  exit 1
-fi
-
 key="$(hostname).$$"
-queue=${1%/}
 
-if ! [ -d ${queue} ] ; then
-  echo "sqsclose: path '${queue}' does not point to a directory"
+vardir=$(sqs-config get vardir .)
+queuedir=${vardir}/${queue}
+parent=${queuedir%/*}
+
+if ! [ -d ${queuedir} ] ; then
+  echo "sqsclose: path '${queuedir}' does not point to a directory"
   exit 2
 fi
 
-if ! [ -e ${queue} ] ; then
+if ! [ -e ${queuedir} ] ; then
   echo "sqsclose: queue '${queue}' does not exist"
   exit 3
 fi
 
-parent=${queue%/*}
-
 sqslock ${parent} ${key} || exit $?
 
-sqslock ${queue} ${key} || { sqsunlock ${parent} ${key} ; exit 3 ; }
+sqslock ${queuedir} ${key} || { sqsunlock ${parent} ${key} ; exit 3 ; }
 
-rm -rf ${queue}
+rm -rf ${queuedir}
 
 sqsunlock ${parent} ${key} || exit $?
 
