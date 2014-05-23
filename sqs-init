@@ -61,11 +61,11 @@ SYNOPSIS
        ${0##*/} [OPTION]... [ARGUMENT]...
 
 DESCRIPTION
-       Place a description of the command here. Followed by details about the
-       individual options
+       Initialize a SQS queue. Queues are created in the configured directory.
+       You can query this by calling 'sqs config get vardir .'
 
-       -<short-option>, --<long-option>
-              Description of the specific option
+       WARNING: The script does not lock the queue directory! Concurrent
+                access to the queue directory is risky then!
 
    Exit status
        0  if OK,
