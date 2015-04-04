@@ -101,8 +101,8 @@ until [ -z "${1}" ] ; do
         cmd=${1};
       elif [ -z "${key}" ] ; then
         key=${1};
-      elif [ -z "${val}" ] ; then
-        val=${1}
+      elif [ -z "${valdef}" ] ; then
+        valdef=${1}
       else
         abort "sqs-config: unknown argument '${1}'"
       fi
@@ -112,8 +112,8 @@ until [ -z "${1}" ] ; do
 done
 
 ###############################################################################
-if [[ -z "${cmd}" || -z "${key}" || -z "${val}" ]] ; then
-  abort "sqs-config: wrong argument count: ${cmd} ${key} ${val}"
+if [[ -z "${cmd}" || -z "${key}" || -z "${valdef}" ]] ; then
+  abort "sqs-config: wrong argument count: ${cmd} ${key} ${valdef}"
 fi
 
 cfgfile=${0%/*}/sqsconf
@@ -124,7 +124,7 @@ fi
 
 if [ "x${cmd}" = "xget" ] ; then
   # retrieve a value from the config file
-  def=${val}
+  def=${valdef}
   val=$(grep ${key} ${cfgfile} 2>/dev/null)
   if [ "x${val}" = "x" ] ; then
     echo ${def}
@@ -133,7 +133,7 @@ if [ "x${cmd}" = "xget" ] ; then
   fi
 elif [ "x${cmd}" = "xset" ] ; then
   # set a value in the config file
-  val=${3}
+  val=${valdef}
   grep -v ${key} ${cfgfile} > ${cfgfile}.tmp 
   echo "${key}=${val}" >> ${cfgfile}.tmp || exit $?
   mv -f ${cfgfile}.tmp ${cfgfile}        || exit $?
