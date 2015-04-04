@@ -36,6 +36,8 @@ SQSFILES=$(addprefix $(BINDIR)/,$(FILES))
 
 SETUP=sqsconf
 
+.PHONY: test
+
 default: $(SETUP)
 	@echo "Run 'make install' to install SQS"
 
@@ -64,3 +66,8 @@ uninstall:
 clean:
 	@rm -f Makefile
 	@rm -f sqsconf
+
+test:
+	@cd test; \
+	bin/behat
+

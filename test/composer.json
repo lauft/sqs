@@ -1,0 +1,10 @@
+{
+  "require": {
+    "behat/behat": "~3.0",
+    "phpunit/phpunit": "~4.5",
+    "symfony/process": "~2.6"
+  },
+  "config": {
+    "bin-dir": "bin/"
+  }
+}
