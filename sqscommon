@@ -49,7 +49,7 @@ function error()
 function abort()
 {
   error $*
-  exit ${E_ERROR}
+  exit ${E_FAILURE}
 }
 
 #_______________________________________________________________________________
