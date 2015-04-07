@@ -181,6 +181,18 @@ class FeatureContext implements Context, SnippetAcceptingContext
     }
 
     /**
+     * Checks whether a file at provided path exists.
+     *
+     * @Given /^file "([^"]*)" should not exist$/
+     *
+     * @param string $path
+     */
+    public function fileShouldNotExist($path)
+    {
+        PHPUnit_Framework_Assert::assertFileNotExists($this->workingDir . DIRECTORY_SEPARATOR . $path);
+    }
+
+    /**
      * Sets specified ENV variable
      *
      * @When /^"BEHAT_PARAMS" environment variable is set to:$/
