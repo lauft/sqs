@@ -84,7 +84,7 @@ class FeatureContext implements Context, SnippetAcceptingContext
         $this->workingDir = $dir;
         $this->process = new Process(null);
         $this->process->setEnv(array(
-            'PATH=/bin:'.$dir.DIRECTORY_SEPARATOR.'bin',
+            'PATH=/bin:/usr/bin:'.$dir.DIRECTORY_SEPARATOR.'bin',
             'DEBUG=1'
         ));
     }
