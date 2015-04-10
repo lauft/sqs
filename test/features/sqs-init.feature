@@ -1,5 +1,5 @@
 Feature: sqs-init
-    In order to work with sqs
+    In order to use sqs
     As a user
     I want to initialise a queue
 

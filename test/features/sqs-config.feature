@@ -1,5 +1,5 @@
 Feature: sqs-config
-  In order to configure SQS
+    In order to use sqs
   As a user
   I want to set and get config values
 

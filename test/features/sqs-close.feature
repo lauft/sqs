@@ -1,5 +1,5 @@
 Feature: sqs-close
-    In order to work with sqs
+    In order to use sqs
     As a user
     I want to close a queue
 
