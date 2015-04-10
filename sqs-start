@@ -83,7 +83,6 @@ until [ -z "${1}" ] ; do
 done
 
 ###############################################################################
-vardir=$(sqs-config get vardir .)
 queuedir=${vardir}/${queue}
 
 if [ ! -e ${queuedir} ] ; then

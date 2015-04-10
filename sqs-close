@@ -83,7 +83,6 @@ done
 ###############################################################################
 key="$(hostname).$$"
 
-vardir=$(sqs-config get vardir .)
 queuedir=${vardir}/${queue}
 parent=${queuedir%/*}
 
