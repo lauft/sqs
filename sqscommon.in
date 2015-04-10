@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#
+################################################################################
 # sqscommon
 # common functionality for the SQS suite
 #
@@ -20,6 +20,14 @@ C_WHITE='\E[37m'
 C_NORM='\E[0m'
 C_WARN=${C_YELLOW}
 C_ERR=${C_RED}
+
+################################################################################
+# configuration options for sqs
+#
+version=1.0
+prefix=@prefix@
+vardir=@vardir@
+bindir=@bindir@
 
 #_______________________________________________________________________________
 function debug()

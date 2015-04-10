@@ -23,8 +23,7 @@ PREFIX=@prefix@
 BINDIR=@bindir@
 VARDIR=@vardir@
 
-FILES=sqsconf \
-      sqs \
+FILES=sqs \
       sqscommon \
       $(filter-out $(wildcard sqs-*~), $(wildcard sqs-*)) \
       sqsrunner \
@@ -34,7 +33,7 @@ FILES=sqsconf \
 
 SQSFILES=$(addprefix $(BINDIR)/,$(FILES))
 
-SETUP=sqsconf
+SETUP=sqscommon
 
 .PHONY: test
 
@@ -43,7 +42,7 @@ default: $(SETUP)
 
 install: $(BINDIR) $(VARDIR) $(SQSFILES)
 
-$(SETUP): Makefile.in sqsconf.in
+$(SETUP): Makefile.in sqscommon.in
 	@echo "Re-Running 'configure'..."
 	@cat config.status 2>/dev/null | xargs ./configure
 
@@ -51,7 +50,7 @@ $(BINDIR) $(VARDIR):
 	@mkdir -p $(VARDIR)
 	@mkdir -p $(BINDIR)
 
-$(BINDIR)/sqsconf: sqsconf
+$(BINDIR)/sqscommon: sqscommon
 	@cp -v $< $@
 	@chmod 644 $@	
 
@@ -65,7 +64,7 @@ uninstall:
 
 clean:
 	@rm -f Makefile
-	@rm -f sqsconf
+	@rm -f sqscommon
 
 test:
 	@cd test; \
