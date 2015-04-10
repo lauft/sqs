@@ -81,6 +81,10 @@ until [ -z "${1}" ] ; do
 done
 
 ###############################################################################
+if [ -z ${queue} ] ; then
+  abort "sqs-close: no queue given"
+fi
+
 key="$(hostname).$$"
 
 queuedir=${vardir}/${queue}
