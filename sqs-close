@@ -90,13 +90,13 @@ key="$(hostname).$$"
 queuedir=${vardir}/${queue}
 parent=${queuedir%/*}
 
-if ! [ -d ${queuedir} ] ; then
-  debug "sqs-close: path '${queuedir}' does not point to a directory"
+if ! [ -e ${queuedir} ] ; then
+  debug "sqs-close: path '${queuedir}' does not exist"
   abort "sqs-close: queue '${queue}' does not exist"
 fi
 
-if ! [ -e ${queuedir} ] ; then
-  debug "sqs-close: path '${queuedir}' does not exist"
+if ! [ -d ${queuedir} ] ; then
+  debug "sqs-close: path '${queuedir}' does not point to a directory"
   abort "sqs-close: queue '${queue}' does not exist"
 fi
 
