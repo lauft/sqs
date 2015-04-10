@@ -36,6 +36,7 @@ relative path names.
 
         sqs --nproc 4 --nice 30 --call <call>
 
+
 * Multi-machine examples:
 
     Create a queue on current host, run 4 parallel processes with nice 30.
