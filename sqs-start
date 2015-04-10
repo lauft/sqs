@@ -85,9 +85,8 @@ done
 ###############################################################################
 queuedir=${vardir}/${queue}
 
-if [ ! -e ${queuedir} ] ; then
-  echo "sqs-start: Error, invalid queue '${queue}'"
-  exit 2
+if [ ! -d ${queuedir} ] ; then
+  abort "sqs-start: Error, invalid queue '${queue}'"
 fi
 
 # spawn runners
