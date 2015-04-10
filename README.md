@@ -17,7 +17,7 @@ then ready to use.
 USAGE
 -----
 
-SQS can be used to queue task on a single or on multiple hosts. If used on multiple
+SQS can be used to queue tasks on a single or on multiple hosts. If used on multiple
 hosts, the configured directories (see above) have to be accessible under the same
 path for all hosts! As a rule of thumb, absolute path names are preferable to
 relative path names.
@@ -53,4 +53,3 @@ relative path names.
     parallel processes on 'host2', also with nice 0.
 
         sqs --nproc 4 --host <host2>:3 --call <call> [TARGETS]
-
