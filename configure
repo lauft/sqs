@@ -141,6 +141,9 @@ while [ ${1} ]; do
         --no-create )
             noact="yes"
             ;;
+        --quiet )
+            quiet="yes"
+            ;;
         -h )
             usage
             exit
@@ -256,10 +259,12 @@ result done
 #
 # List the possible Makefiles
 #
-result "To install SQS type:"
-result ""
-result "   make install"
-result ""
+if [ -z "${quiet}" ] ; then
+    result "To install SQS type:"
+    result ""
+    result "   make install"
+    result ""
+fi
 
 exit 0
 
