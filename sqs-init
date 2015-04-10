@@ -39,9 +39,8 @@
 #                                                                              #
 ################################################################################
 
-E_SUCCESS=0
+# sqs-init specific error code
 E_EXISTS=-1
-E_FAILURE=1
 
 progname=${0}
 progdir=${progname%/*}

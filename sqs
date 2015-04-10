@@ -27,12 +27,20 @@
 ################################################################################
 
 progname=${0}
+progname=${0%-*}
+progdir=${progname%/*}
+progbase=${progname#${progdir}}
+progbase=${progbase%%-*}
+
+source ${progdir}/${progbase}common
+
 command=${1}
 shift
 
 function print_usage()
 {
 cat << EOF
+
 SQS, a simple queuing system.
 
 Usage: ${progname##*/} <command> [<options/arguments>]
@@ -43,14 +51,13 @@ EOF
 }
 
 if [ "x${command}" == "x" ] ; then
-  echo "no command given!"
+  warn "no command given!"
   print_usage
-  exit 1
+  abort
 fi
 
 if [ ! -x "${progname}-${command}" ] ; then
-  echo "unknown command '${command}'!"
-  exit 2
+  abort "unknown command '${command}'!"
 fi
 
 ${progname}-${command} $*

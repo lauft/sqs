@@ -88,23 +88,21 @@ queuedir=${vardir}/${queue}
 parent=${queuedir%/*}
 
 if ! [ -d ${queuedir} ] ; then
-  echo "sqsclose: path '${queuedir}' does not point to a directory"
-  exit 2
+  abort "sqs-close: path '${queuedir}' does not point to a directory"
 fi
 
 if ! [ -e ${queuedir} ] ; then
-  echo "sqsclose: queue '${queue}' does not exist"
-  exit 3
+  abort "sqs-close: queue '${queue}' does not exist"
 fi
 
-sqslock ${parent} ${key} || exit $?
+sqslock ${parent} ${key} || abort "sqs-close: cannot lock '${parent}'"
 
-sqslock ${queuedir} ${key} || { sqsunlock ${parent} ${key} ; exit 3 ; }
+sqslock ${queuedir} ${key} || { sqsunlock ${parent} ${key} ; abort "sqs-close: cannot lock '${queuedir}'" ; }
 
 rm -rf ${queuedir}
 
-sqsunlock ${parent} ${key} || exit $?
+sqsunlock ${parent} ${key} || abort "sqs-close: cannot unlock '${parent}'"
 
-exit 0
+exit ${E_SUCCESS}
 
 ### EOF

@@ -36,9 +36,6 @@
 #                                                                              #
 ################################################################################
 
-E_SUCCESS=0
-E_FAILURE=1
-
 progname=${0}
 progdir=${progname%/*}
 progbase=${progname#${progdir}}
