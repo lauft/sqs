@@ -2,6 +2,8 @@
 
 use Behat\Behat\Context\Context;
 use Behat\Behat\Context\SnippetAcceptingContext;
+use Behat\Behat\Hook\Scope\AfterStepScope;
+use Behat\Behat\Hook\Scope\BeforeFeatureScope;
 use Behat\Gherkin\Node\PyStringNode;
 use Behat\Gherkin\Node\TableNode;
 use Symfony\Component\Process\PhpExecutableFinder;
@@ -13,6 +15,9 @@ use Symfony\Component\Process\Process;
 class FeatureContext implements Context, SnippetAcceptingContext
 {
     private $testEtcDir;
+    private static $varDir;
+    private static $binDir;
+    private static $etcDir;
 
     /**
      * Initializes context.
@@ -25,10 +30,9 @@ class FeatureContext implements Context, SnippetAcceptingContext
     {
     }
 
-    /**
-     * @var Process
-     */
+    /** @var Process */
     private $process;
+
     /** @var string */
     private $workingDir;
 
@@ -87,11 +91,13 @@ class FeatureContext implements Context, SnippetAcceptingContext
 
     private static function installSqsAt($testsite)
     {
-        $varDir = $testsite . DIRECTORY_SEPARATOR . 'var';
-        $binDir = $testsite . DIRECTORY_SEPARATOR . 'bin';
+        self::$varDir = $testsite . DIRECTORY_SEPARATOR . 'var';
+        self::$binDir = $testsite . DIRECTORY_SEPARATOR . 'bin';
+        self::$etcDir = $testsite . DIRECTORY_SEPARATOR . 'etc';
 
-        mkdir($varDir, 0777, true);
-        mkdir($binDir, 0777, true);
+        mkdir(self::$varDir, 0777, true);
+        mkdir(self::$binDir, 0777, true);
+        mkdir(self::$etcDir, 0777, true);
 
         $output = array();
         $return = '';
@@ -99,6 +105,15 @@ class FeatureContext implements Context, SnippetAcceptingContext
         exec('./configure --prefix '.$testsite, $output, $return);
         exec('make');
         exec('make install');
+    }
+
+    /**
+     * @BeforeFeature
+     * @param BeforeFeatureScope $scope
+     */
+    public static function beforeFeature(BeforeFeatureScope $scope)
+    {
+        exec('rm -rf '.self::$varDir.DIRECTORY_SEPARATOR.'sqs'.DIRECTORY_SEPARATOR.'*');
     }
 
     /**
