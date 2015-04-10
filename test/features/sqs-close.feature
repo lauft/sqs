@@ -1,4 +1,4 @@
-Feature: <feature description>
+Feature: sqs-close
     In order to work with sqs
     As a user
     I want to close a queue
@@ -16,6 +16,6 @@ Feature: <feature description>
         When I run "sqs close" with "foo"
         Then it should fail
 
-    Scenario: Call 'sqs close'
+    Scenario: Call 'sqs close' without queue
         When I run "sqs close" with " "
         Then it should fail
