@@ -110,8 +110,6 @@ if [ -z "${queue}" ] ; then
   abort "sqs-init: no queue given!"
 fi
 
-vardir=$(sqs-config get vardir .) 
-
 if [ "x${vardir}" == "x." ] ; then
   abort "sqs-init: no vardir!"
 fi
@@ -147,5 +145,6 @@ touch ${vardir}/${queue}/info/ionice || exit ${E_FAILURE}
 echo "-1"                 > ${vardir}/${queue}/info/ntask
 echo "master=$(hostname)" > ${vardir}/${queue}/info/options
 echo "halt"               > ${vardir}/${queue}/info/state
+echo "melete:8"           > ${vardir}/${queue}/info/nproc
 
 exit ${E_SUCCESS}
