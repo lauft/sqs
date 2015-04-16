@@ -267,6 +267,16 @@ class FeatureContext implements Context, SnippetAcceptingContext
         PHPUnit_Framework_Assert::assertContains($this->getExpectedOutput($text), $this->getOutput());
     }
 
+    /**
+     * @Then the output should match:
+     *
+     * @param PyStringNode $string
+     */
+    public function theOutputShouldMatch(PyStringNode $string)
+    {
+        PHPUnit_Framework_Assert::assertRegExp('/^'.$string.'$/', $this->getOutput());
+    }
+
     private function getExpectedOutput(PyStringNode $expectedText)
     {
         $text = strtr($expectedText, array('\'\'\'' => '"""', '%%TMP_DIR%%' => sys_get_temp_dir() . DIRECTORY_SEPARATOR));
