@@ -51,11 +51,9 @@ SYNOPSIS
        ${0##*/} [OPTION]... [ARGUMENT]...
 
 DESCRIPTION
-       Place a description of the command here. Followed by details about the
-       individual options
-
-       -<short-option>, --<long-option>
-              Description of the specific option
+       Stops the processing of the specified queue
+       WARNING: script does not lock <queue>! Locking and release of the
+                queue has to be done by the caller!
 
    Exit status
        0  if OK,
@@ -89,26 +87,27 @@ until [ -z "${1}" ] ; do
     -*)
       abort "Unknown option '${1}'"
       ;;
+    *)
+      queue=${1}
+      ;;
   esac
   shift
 done
 
 ###############################################################################
-if [ $# -ne 1 ] ; then
-  echo "sqs-stop: wrong argument count! ($*)" 
-  exit 1
+if [ -z ${queue} ] ; then
+  abort "sqs-stop: no queue given"
 fi
 
-queue=${1}
+queuedir=${vardir}/${queue}
 
-if [ ! -e ${queue} ] ; then
-  echo "sqs-stop: Error, invalid queue '${queue}'"
-  exit 2
+if [ ! -d ${queuedir} ] ; then
+  abort "sqs-stop: Error, invalid queue '${queue}'"
 fi
 
 # set process count for all hosts to 0
 # Force flag? -> Send terminate signal to runners?
 
-exit 0
+exit ${E_SUCCESS}
 
 ### EOF
