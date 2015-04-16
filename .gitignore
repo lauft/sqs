@@ -2,4 +2,6 @@ test/bin/
 test/vendor/
 Makefile
 sqscommon
+config.status
+config.log
 *~
