@@ -21,6 +21,18 @@
 #                                                                              #
 ################################################################################
 
+################################################################################
+#                                                                              #
+# Helper script for the SQS                                                    #
+# Starts the processing of the specified queue                                 #
+#                                                                              #
+# WARNING: script does not lock <queue>! Locking and release of the            #
+#          queue has to be done by the caller!                                 #
+#                                                                              #
+# 1 = queue                                                                    #
+#                                                                              #
+################################################################################
+
 progname=${0}
 progdir=${progname%/*}
 progbase=${progname#${progdir}}
@@ -96,6 +108,6 @@ fi
 # spawn runners
 sqsdispatch ${queuedir} &
 
-exit 0
+exit ${E_SUCCESS}
 
 ### EOF
