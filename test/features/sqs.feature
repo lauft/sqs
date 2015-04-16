@@ -3,7 +3,7 @@ Feature: sqs
     As a user
     I want to have a command line interface
 
-    Scenario: Call 'sqs' without parameters should display
+    Scenario: Call 'sqs' without parameters should display minimal help
         When I run "sqs" with " "
         Then it should fail
         And the output should contain:
