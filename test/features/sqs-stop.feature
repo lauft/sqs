@@ -14,3 +14,9 @@ Feature: sqs-stop
     Scenario: Call 'sqs stop' on existing queue
         When I run "sqs stop" with "myqueue"
         Then it should pass
+        When I am in the "var/sqs/myqueue/info" path
+        Then file "state" should exist
+        And "state" file should contain:
+        """
+        halt
+        """

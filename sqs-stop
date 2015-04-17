@@ -105,8 +105,8 @@ if [ ! -d ${queuedir} ] ; then
   abort "sqs-stop: Error, invalid queue '${queue}'"
 fi
 
-# set process count for all hosts to 0
-# Force flag? -> Send terminate signal to runners?
+echo 'halt' > ${queuedir}/info/state
+# TODO: Force flag? -> Send terminate signal to runners?
 
 exit ${E_SUCCESS}
 
