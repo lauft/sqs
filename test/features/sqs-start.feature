@@ -14,3 +14,11 @@ Feature: sqs-start
     Scenario: Call 'sqs start' empties queue
         When I run "sqs start" with "myqueue"
         Then it should pass
+        When I am in the "var/sqs/myqueue/info" path
+        Then file "state" should exist
+        And "state" file should contain:
+        """
+        run
+        """
+        When I am in the "../wait" path
+        Then file "0" should not exist

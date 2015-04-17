@@ -105,6 +105,8 @@ if [ ! -d ${queuedir} ] ; then
   abort "sqs-start: Error, invalid queue '${queue}'"
 fi
 
+echo 'run' > ${queuedir}/info/state
+
 # spawn runners
 sqsdispatch ${queuedir} &
 
