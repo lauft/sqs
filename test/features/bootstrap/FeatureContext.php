@@ -186,7 +186,8 @@ class FeatureContext implements Context, SnippetAcceptingContext
     /**
      * Checks whether a file at provided path exists.
      *
-     * @Given /^file "([^"]*)" should exist$/
+     * @Given /^file "([^"]*)" exists$/
+     * @Then /^file "([^"]*)" should exist$/
      *
      * @param string $path
      */
@@ -198,11 +199,39 @@ class FeatureContext implements Context, SnippetAcceptingContext
     /**
      * Checks whether a file at provided path exists.
      *
-     * @Given /^file "([^"]*)" should not exist$/
+     * @Given /^file "([^"]*)" does not exist$/
+     * @Then /^file "([^"]*)" should not exist$/
      *
      * @param string $path
      */
     public function fileShouldNotExist($path)
+    {
+        PHPUnit_Framework_Assert::assertFileNotExists($this->workingDir . DIRECTORY_SEPARATOR . $path);
+    }
+
+    /**
+     * Checks whether a directory at provided path exists.
+     *
+     * @Given /^directory "([^"]*)" exists$/
+     * @Then /^directory "([^"]*)" should exist$/
+     *
+     * @param string $path
+     */
+    public function directoryShouldExist($path)
+    {
+        // TODO add check for file type
+        PHPUnit_Framework_Assert::assertFileExists($this->workingDir . DIRECTORY_SEPARATOR . $path);
+    }
+
+    /**
+     * Checks whether a directory at provided path exists.
+     *
+     * @Given /^directory "([^"]*)" does not exist$/
+     * @Then /^directory  "([^"]*)" should not exist$/
+     *
+     * @param string $path
+     */
+    public function directoryShouldNotExist($path)
     {
         PHPUnit_Framework_Assert::assertFileNotExists($this->workingDir . DIRECTORY_SEPARATOR . $path);
     }
