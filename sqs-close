@@ -100,13 +100,13 @@ if ! [ -d ${queuedir} ] ; then
   abort "sqs-close: queue '${queue}' does not exist"
 fi
 
-sqslock ${parent} ${key} || abort "sqs-close: cannot lock '${parent}'"
+sqsguard lock ${parent} ${key} || abort "sqs-close: cannot lock '${parent}'"
 
-sqslock ${queuedir} ${key} || { sqsunlock ${parent} ${key} ; abort "sqs-close: cannot lock '${queuedir}'" ; }
+sqsguard lock ${queuedir} ${key} || { sqsguard unlock ${parent} ${key} ; abort "sqs-close: cannot lock '${queuedir}'" ; }
 
 rm -rf ${queuedir}
 
-sqsunlock ${parent} ${key} || abort "sqs-close: cannot unlock '${parent}'"
+sqsguard unlock ${parent} ${key} || abort "sqs-close: cannot unlock '${parent}'"
 
 exit ${E_SUCCESS}
 

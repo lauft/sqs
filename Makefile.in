@@ -28,8 +28,6 @@ FILES=sqs \
       sqsdispatch \
       $(filter-out $(wildcard sqs-*~), $(wildcard sqs-*)) \
       sqsrunner \
-      sqslock \
-      sqsunlock \
       sqsguard \
       sqstest
 

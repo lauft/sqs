@@ -21,6 +21,8 @@
 #                                                                              #
 ################################################################################
 
+source sqscommon
+
 #_______________________________________________________________________________
 sqsr_add_to_runc()
 {
@@ -49,7 +51,7 @@ fi
 host=$(hostname)
 key="${host}.$$"
 
-sqslock ${queue} ${key} || exit $?
+sqsguard lock ${queue} ${key} || exit $?
 
 # retrieve runner count on host
 nrun=$(sqs get ${queue}/info/hosts ${host} 0)
@@ -83,6 +85,6 @@ while [ true ] ; do
   fi
 done
 
-sqsunlock ${queue} ${key} || exit $?
+sqsguard unlock ${queue} ${key} || exit $?
 
 exit 0

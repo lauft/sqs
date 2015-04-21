@@ -65,7 +65,7 @@ fi
 host=$(hostname)
 key="${host}.$$"
 
-sqslock ${queue} ${key} || exit $?
+sqsguard lock ${queue} ${key} || exit $?
 
 if [ "x${verbose}" = "xyes" ] ; then
   echo "sqsrunner ($$): starting on ${host}."
@@ -98,13 +98,13 @@ if [ "x${tid}" != "x" ] ; then
   # update proc
   echo "${tid}" > ${queue}/proc/${host}.${pid}
   
-  sqsunlock ${queue} ${key} || exit $?
+  sqsguard unlock ${queue} ${key} || exit $?
   
   # wait for completion
   wait ${pid}
   
   # remove completed task
-  sqslock ${queue} ${key} || exit $?
+  sqsguard lock ${queue} ${key} || exit $?
   rm -f ${queue}/exec/${tid}
   rm -f ${queue}/proc/${host}.${pid}
 
@@ -117,7 +117,7 @@ else
   fi
 fi
 
-sqsunlock ${queue} ${key} || exit $?
+sqsguard unlock ${queue} ${key} || exit $?
 
 sqsdispatch ${queue} &
 
