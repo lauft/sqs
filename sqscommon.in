@@ -20,13 +20,21 @@
 ################################################################################
 
 ################################################################################
-# sqscommon
-# common functionality for the SQS suite
-#
+# sqscommon                                                                    #
+# common functionality for the SQS suite                                       #
+################################################################################
 
+# configuration options for sqs
+version=1.0
+prefix=@prefix@
+vardir=@vardir@
+bindir=@bindir@
+
+# exit codes
 E_SUCCESS=0
 E_FAILURE=1
 
+# color codes
 C_BLACK='\E[30m'
 C_RED='\E[31m'
 C_GREEN='\E[32m'
@@ -39,14 +47,6 @@ C_WHITE='\E[37m'
 C_NORM='\E[0m'
 C_WARN=${C_YELLOW}
 C_ERR=${C_RED}
-
-################################################################################
-# configuration options for sqs
-#
-version=1.0
-prefix=@prefix@
-vardir=@vardir@
-bindir=@bindir@
 
 #_______________________________________________________________________________
 function debug()
