@@ -30,6 +30,7 @@ FILES=sqs \
       sqsrunner \
       sqslock \
       sqsunlock \
+      sqsguard \
       sqstest
 
 SQSFILES=$(addprefix $(BINDIR)/,$(FILES))

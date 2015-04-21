@@ -1,0 +1,133 @@
+#!/bin/bash
+
+################################################################################
+# SQS - a simple queuing system                                                #
+# Copyright (C) 2011, 2012 by Thomas Lauf                                      #
+#                                                                              #
+# This file is part of SQS.                                                    #
+#                                                                              #
+# SQS is free software: you can redistribute it and/or modify                  #
+# it under the terms of the GNU General Public License as published by         #
+# the Free Software Foundation, either version 3 of the License, or            #
+# (at your option) any later version.                                          #
+#                                                                              #
+# SQS is distributed in the hope that it will be useful,                       #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of               #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                #
+# GNU General Public License for more details.                                 #
+#                                                                              #
+# You should have received a copy of the GNU General Public License            #
+# along with SQS.  If not, see <http://www.gnu.org/licenses/>.                 #
+#                                                                              #
+################################################################################
+
+################################################################################
+#                                                                              #
+# Helper script for the SQS                                                    #
+# Locks directories to prevent race conditions                                 #
+# Locking requires a tag (which can identify the locking process)              #
+# Optionally a timeout can be set after which the lock try aborts              #
+#                                                                              #
+# Unlocks directories                                                          #
+# Unlocking requires a matching tag.                                           #
+#                                                                              #
+# Returns  0 on success                                                        #
+#         -1 on timeout                                                        #
+#          1 on error                                                          #
+#                                                                              #
+################################################################################
+
+source sqscommon
+
+#_______________________________________________________________________________
+function sqs_lock()
+{
+  local dir=${1}
+  local tag=${2}
+  local try=${3}
+
+  while [ true ] ; do
+    if ! [ -e ${dir} ] ; then
+      echo "sqsguard (${tag}): directory '${dir}' does not exist"
+      exit 1
+    fi
+
+    mkdir "${dir}/lockfile" 2>/dev/null
+
+    if [ $? -eq 0 ] ; then
+      break;
+    fi
+
+    if [ "x${verbose}" = "xyes" ] ; then
+      echo -en "sqsguard (${tag}): waiting for lock on '${dir}'...\r"
+    fi
+
+    if [ ${try} -gt 0 ] ; then
+      ((try--))
+    fi
+
+    if [ ${try} -eq 0 ] ; then
+      echo "sqsguard (${tag}): request timed out"
+      exit ${E_FAILURE}
+    fi
+
+    sleep 1
+  done
+
+  if [ "x${verbose}" = "xyes" ] ; then
+    echo "sqsguard (${tag}): locking '${dir}'"
+  fi
+
+  echo "${USER}:$$" > ${dir}/lockfile/${tag}
+}
+
+#_______________________________________________________________________________
+function sqs_unlock()
+{
+  local dir=${1}
+  local tag=${2}
+
+  if ! [ -e ${dir}/lockfile/${tag} ] ; then
+    # non-matching tag file
+    echo "sqsguard (${tag}): Error, cannot unlock dir '${dir}'"
+    exit ${E_FAILURE}
+  fi
+
+  if [ "x${verbose}" = "xyes" ] ; then
+    echo "sqsguard (${tag}): unlocking '${dir}'"
+  fi
+
+  rm -rf ${dir}/lockfile
+}
+
+################################################################################
+# script entry point                                                           #
+################################################################################
+if [ $# -lt 3 ] || [ $# -gt 4 ] ; then
+  echo "sqsguard: wrong argument count! ($*)"
+  exit 1
+fi
+
+if [ "x${vardir}" == "x" ] ; then
+  echo "sqsguard: no vardir!"
+  exit ${E_FAILURE}
+fi
+
+cmd=${1}
+dir=${2}
+tag=${3}
+
+case ${cmd} in
+  lock)
+    try=${4-"-1"}
+    sqs_lock ${dir} ${tag} ${try}
+    ;;
+  unlock)
+    sqs_unlock ${dir} ${tag}
+    ;;
+  *)
+    abort "sqsguard: unknown command '${cmd}'"
+    ;;
+esac
+
+exit ${E_SUCCESS}
