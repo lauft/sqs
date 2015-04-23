@@ -96,9 +96,13 @@ if [ ! -d ${vardir}/${queue} ] ; then
   abort "sqs-add: queue '${queue}' does not exist"
 fi
 
+key=$(hostname).$$
+sqsguard lock ${vardir}/${queue} $key
+
 i=$(cat ${vardir}/${queue}/info/ntask)
 ((i++))
 echo "sqs-add: add task ${i} to queue '${queue}': '${task}'"
 echo ${task} > ${vardir}/${queue}/wait/${i}
 echo ${i}    > ${vardir}/${queue}/info/ntask
 
+sqsguard unlock ${vardir}/${queue} ${key}
