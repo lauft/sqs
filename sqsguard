@@ -48,8 +48,7 @@ function sqs_lock()
 
   while [ true ] ; do
     if ! [ -e ${dir} ] ; then
-      echo "sqsguard (${tag}): directory '${dir}' does not exist"
-      exit 1
+      abort "sqsguard (${tag}): directory '${dir}' does not exist"
     fi
 
     mkdir "${dir}/lockfile" 2>/dev/null
@@ -67,8 +66,7 @@ function sqs_lock()
     fi
 
     if [ ${try} -eq 0 ] ; then
-      echo "sqsguard (${tag}): request timed out"
-      exit ${E_FAILURE}
+      abort "sqsguard (${tag}): request timed out"
     fi
 
     sleep 1
@@ -89,8 +87,7 @@ function sqs_unlock()
 
   if ! [ -e ${dir}/lockfile/${tag} ] ; then
     # non-matching tag file
-    echo "sqsguard (${tag}): Error, cannot unlock dir '${dir}'"
-    exit ${E_FAILURE}
+    abort "sqsguard (${tag}): Error, cannot unlock dir '${dir}'"
   fi
 
   if [ "x${verbose}" = "xyes" ] ; then
