@@ -51,9 +51,7 @@ function sqs_lock()
       abort "sqsguard (${tag}): directory '${dir}' does not exist"
     fi
 
-    mkdir "${dir}/lockfile" 2>/dev/null
-
-    if [ $? -eq 0 ] ; then
+    if mkdir "${dir}/lockfile" 2>/dev/null ; then
       break;
     fi
 
