@@ -40,18 +40,22 @@ sqsr_add_to_runc()
   return
 }
 
-verbose="yes"
 queue=${1}
+host=$(hostname)
 
-if ! [ -e ${queue} ] ; then
-  echo "sqsdispatch: queue '${queue}' does not exist! [${host}]"
-  exit 2
+if ! [ -d ${queue} ] ; then
+  abort "sqsdispatch: queue '${queue}' does not exist! [${host}]"
 fi
 
-host=$(hostname)
 key="${host}.$$"
 
 sqsguard lock ${queue} ${key} || exit $?
+
+state=$(cat ${queuedir}/info/state)
+
+if [ "${state}" != "run" ] ; then
+  exit 0
+fi
 
 # retrieve runner count on host
 nrun=$(sqs get ${queue}/info/hosts ${host} 0)
@@ -63,14 +67,12 @@ while [ true ] ; do
   ntask=$(ls ${queue}/wait 2>/dev/null | wc -l)
 
   if [ ${ntask} -eq 0 ] ; then
-    echo "sqsdispatch: no more tasks in queue"
+    debug "sqsdispatch: no more tasks in queue"
     break;
   fi
 
-  if [ "x${verbose}" = "xyes" ] ; then
-    echo "sqsdispatch: ${nrun} of ${nmax} processes [${host}]"
-  fi
-  
+  debug "sqsdispatch: ${nrun} of ${nmax} processes [${host}]"
+
   if [ ${nrun} -ge ${nmax} ] ; then
     # exit loop if above maximum
     break
@@ -79,9 +81,7 @@ while [ true ] ; do
     nrun=$(sqsr_add_to_runc 1)
     sqsrunner ${queue} &
 
-    if [ "x${verbose}" = "xyes" ] ; then
-      echo "sqsdispatch: spawning new sqsrunner ($!) [${host}]"
-    fi
+    debug "sqsdispatch: spawning new sqsrunner ($!) [${host}]"
   fi
 done
 

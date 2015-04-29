@@ -26,21 +26,14 @@
 # Helper script for the SQS                                                    #
 # Initializes a new queue directory.                                           #
 #                                                                              #
-# WARNING: script does not lock <vardir>! Locking and release of the           #
-#          directory containing the queues has to be done by the caller!       #
-#                                                                              #
 # Parameters:                                                                  #
 # 1 = name of the queue                                                        #
 #                                                                              #
 # Returns                                                                      #
 #  0  on success                                                               #
-#  1  if queue already exists                                                  #
-# -1  on failure                                                               #
+#  1  on failure                                                               #
 #                                                                              #
 ################################################################################
-
-# sqs-init specific error code
-E_EXISTS=-1
 
 progname=${0}
 progdir=${progname%/*}
@@ -54,17 +47,17 @@ function print_help()
   # print help about this command
   cat <<EOF
 NAME
-       ${0##*/} - <short description>
+       sqs-init - Initialize a queue.
 
 SYNOPSIS
-       ${0##*/} [OPTION]... [ARGUMENT]...
+       sqs init [OPTION]... [QUEUE]
 
 DESCRIPTION
-       Initialize a SQS queue. Queues are created in the configured directory.
-       You can query this by calling 'sqs config get vardir .'
+       Initialize queue QUEUE. Queues are created in the configured directory.
 
-       WARNING: The script does not lock the queue directory! Concurrent
-                access to the queue directory is risky then!
+OPTIONS
+       -h, --help
+           Print this help and exit.
 
    Exit status
        0  if OK,
@@ -96,10 +89,11 @@ until [ -z "${1}" ] ; do
       exit
       ;;
     -*)
-      abort "sqs-init: unknown option '${1}'"
+      abort "Unknown option '${1}'"
       ;;
     *)
       queue=${1}
+      ;;
   esac
   shift
 done
@@ -109,41 +103,43 @@ if [ -z "${queue}" ] ; then
   abort "sqs-init: no queue given!"
 fi
 
-if [ "x${vardir}" == "x." ] ; then
-  abort "sqs-init: no vardir!"
+if [ ! -d ${vardir} ] ; then
+  abort "sqs-init: cannot access vardir '${vardir}'"
 fi
 
-# checking whether queue already exists
-if [ -e "${vardir}/${queue}" ] ; then
-  if [ "x${verbose}" = "xyes" ] ; then
-    echo "sqs-init: queue '${queue}' already exists!"
-  fi
-  exit ${E_EXISTS}
+key="$(hostname).$$"
+sqsguard lock ${vardir} ${key} || abort "sqs-start: cannot lock '${vardir}'"
+
+queuedir=${vardir}/${queue}
+
+if [ -e ${queuedir} ] ; then
+  abort "sqs-init: queue '${queue}' already exists!"
 fi
 
-# creating queue if non-existent
-if [ "x${verbose}" = "xyes" ] ; then
-  echo "sqs-init: queue does not exist, creating new queue!"
-fi
-
-mkdir ${vardir}/${queue} || exit ${E_FAILURE}
+mkdir ${queuedir} || exit ${E_FAILURE}
 
 # creating subfolders
-mkdir ${vardir}/${queue}/wait || exit ${E_FAILURE}
-mkdir ${vardir}/${queue}/exec || exit ${E_FAILURE}
-mkdir ${vardir}/${queue}/proc || exit ${E_FAILURE}
-mkdir ${vardir}/${queue}/info || exit ${E_FAILURE}
+mkdir ${queuedir}/wait || exit ${E_FAILURE}
+mkdir ${queuedir}/exec || exit ${E_FAILURE}
+mkdir ${queuedir}/proc || exit ${E_FAILURE}
+mkdir ${queuedir}/info || exit ${E_FAILURE}
 
 # creating info files
-touch ${vardir}/${queue}/info/hosts  || exit ${E_FAILURE}
-touch ${vardir}/${queue}/info/nproc  || exit ${E_FAILURE}
-touch ${vardir}/${queue}/info/nice   || exit ${E_FAILURE}
-touch ${vardir}/${queue}/info/ionice || exit ${E_FAILURE}
+touch ${queuedir}/info/hosts  || exit ${E_FAILURE}
+touch ${queuedir}/info/nproc  || exit ${E_FAILURE}
+touch ${queuedir}/info/nice   || exit ${E_FAILURE}
+touch ${queuedir}/info/ionice || exit ${E_FAILURE}
 
 # filling in default values
-echo "-1"                 > ${vardir}/${queue}/info/ntask
-echo "master=$(hostname)" > ${vardir}/${queue}/info/options
-echo "halt"               > ${vardir}/${queue}/info/state
-echo "melete:8"           > ${vardir}/${queue}/info/nproc
+echo "-1"                 > ${queuedir}/info/ntask
+echo "master=$(hostname)" > ${queuedir}/info/options
+echo "halt"               > ${queuedir}/info/state
+echo "melete:8"           > ${queuedir}/info/nproc
+
+sqsguard unlock ${vardir} ${key} || abort "sqs-init: cannot unlock '${vardir}'"
+
+info "sqs-init: created queue ${queue}"
 
 exit ${E_SUCCESS}
+
+### EOF

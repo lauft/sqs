@@ -21,6 +21,15 @@
 #                                                                              #
 ################################################################################
 
+################################################################################
+#                                                                              #
+# Helper script for the SQS                                                    #
+# Add a task to the specified queue                                            #
+#                                                                              #
+# 1 = queue                                                                    #
+#                                                                              #
+################################################################################
+
 progname=${0%-*}
 progdir=${progname%/*}
 progbase=${progname#${progdir}}
@@ -33,13 +42,17 @@ function print_help()
   # print help about this command
   cat <<EOF
 NAME
-       ${0##*/} - adds a task to a queue.
+       sqs-add - adds a task to a queue.
 
 SYNOPSIS
-       ${0##*/} QUEUE TASK
+       sqs add QUEUE TASK
 
 DESCRIPTION
        Adds task TASK to the given queue QUEUE.
+
+OPTIONS
+       -h, --help
+           Print this help and exit.
 
    Exit status
        0  if OK,
@@ -92,17 +105,26 @@ if [ ! -d ${vardir} ] ; then
   abort "sqs-add: cannot access vardir '${vardir}'"
 fi
 
-if [ ! -d ${vardir}/${queue} ] ; then
+queuedir=${vardir}/${queue}
+
+if [ ! -d ${queuedir} ] ; then
   abort "sqs-add: queue '${queue}' does not exist"
 fi
 
 key=$(hostname).$$
-sqsguard lock ${vardir}/${queue} $key
+sqsguard lock ${queuedir} $key || abort "sqs-add: cannot lock queue ${queue}"
 
-i=$(cat ${vardir}/${queue}/info/ntask)
+i=$(cat ${queuedir}/info/ntask)
 ((i++))
-echo "sqs-add: add task ${i} to queue '${queue}': '${task}'"
+info "sqs-add: add task ${i} to queue '${queue}': '${task}'"
 echo ${task} > ${vardir}/${queue}/wait/${i}
 echo ${i}    > ${vardir}/${queue}/info/ntask
 
-sqsguard unlock ${vardir}/${queue} ${key}
+sqsguard unlock ${vardir}/${queue} ${key} || "sqs-add: cannot unlock queue ${queue}"
+
+# spawn runners
+sqsdispatch ${queuedir} &
+
+exit ${E_SUCCESS}
+
+### EOF

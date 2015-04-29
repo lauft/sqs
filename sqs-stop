@@ -26,9 +26,6 @@
 # Helper script for the SQS                                                    #
 # Stops the processing of the specified queue                                  #
 #                                                                              #
-# WARNING: script does not lock <queue>! Locking and release of the            #
-#          queue has to be done by the caller!                                 #
-#                                                                              #
 # 1 = queue                                                                    #
 #                                                                              #
 ################################################################################
@@ -45,15 +42,17 @@ function print_help()
   # print help about this command
   cat <<EOF
 NAME
-       ${0##*/} - <short description>
+       sqs-stop - Stop processing of a queue.
 
 SYNOPSIS
-       ${0##*/} [OPTION]... [ARGUMENT]...
+       sqs stop [OPTION]... [QUEUE]
 
 DESCRIPTION
-       Stops the processing of the specified queue
-       WARNING: script does not lock <queue>! Locking and release of the
-                queue has to be done by the caller!
+       Stops the processing of the given queue QUEUE.
+
+OPTIONS
+       -h, --help
+           Print this help and exit.
 
    Exit status
        0  if OK,
@@ -95,17 +94,27 @@ until [ -z "${1}" ] ; do
 done
 
 ###############################################################################
-if [ -z ${queue} ] ; then
+if [ -z "${queue}" ] ; then
   abort "sqs-stop: no queue given"
+fi
+
+if [ ! -d ${vardir} ] ; then
+  abort "sqs-stop: cannot access vardir '${vardir}'"
 fi
 
 queuedir=${vardir}/${queue}
 
 if [ ! -d ${queuedir} ] ; then
-  abort "sqs-stop: Error, invalid queue '${queue}'"
+  abort "sqs-stop: queue '${queue}' does not exist"
 fi
 
+key="$(hostname).$$"
+sqsguard lock ${queuedir} ${key} || abort "sqs-stop: cannot lock queue ${queue}"
+
 echo 'halt' > ${queuedir}/info/state
+
+sqsguard unlock ${queuedir} ${key} || abort "sqs-stop: cannot unlock queue ${queue}"
+
 # TODO: Force flag? -> Send terminate signal to runners?
 
 exit ${E_SUCCESS}

@@ -26,9 +26,6 @@
 # Helper script for the SQS                                                    #
 # Starts the processing of the specified queue                                 #
 #                                                                              #
-# WARNING: script does not lock <queue>! Locking and release of the            #
-#          queue has to be done by the caller!                                 #
-#                                                                              #
 # 1 = queue                                                                    #
 #                                                                              #
 ################################################################################
@@ -45,15 +42,17 @@ function print_help()
   # print help about this command
   cat <<EOF
 NAME
-       ${0##*/} - <short description>
+       sqs-start - Start processing of a queue.
 
 SYNOPSIS
-       ${0##*/} [OPTION]... [ARGUMENT]...
+       sqs start [OPTION]... [QUEUE]
 
 DESCRIPTION
-       Starts the processing of the specified queue
-       WARNING: script does not lock <queue>! Locking and release of the
-                queue has to be done by the caller!
+       Starts the processing of the given queue QUEUE.
+
+OPTIONS
+       -h, --help
+           Print this help and exit.
 
    Exit status
        0  if OK,
@@ -95,17 +94,26 @@ until [ -z "${1}" ] ; do
 done
 
 ###############################################################################
-if [ -z ${queue} ] ; then
+if [ -z "${queue}" ] ; then
   abort "sqs-start: no queue given"
+fi
+
+if [ ! -d ${vardir} ] ; then
+  abort "sqs-start: cannot access vardir '${vardir}'"
 fi
 
 queuedir=${vardir}/${queue}
 
 if [ ! -d ${queuedir} ] ; then
-  abort "sqs-start: Error, invalid queue '${queue}'"
+  abort "sqs-start: queue '${queue}' does not exist"
 fi
 
+key="$(hostname).$$"
+sqsguard lock ${queuedir} ${key} || abort "sqs-start: cannot lock queue ${queue}"
+
 echo 'run' > ${queuedir}/info/state
+
+sqsguard unlock ${queuedir} ${key} || abort "sqs-start: cannot unlock queue ${queue}"
 
 # spawn runners
 sqsdispatch ${queuedir} &

@@ -33,13 +33,17 @@ function print_help()
   # print help about this command
   cat <<EOF
 NAME
-       ${0##*/} - <short description>
+       sqs-close - Close a queue.
 
 SYNOPSIS
-       ${0##*/} [OPTION]... [ARGUMENT]...
+       sqs close [OPTION]... [QUEUE]
 
 DESCRIPTION
-       Closes (i.e. removes) the given queue.
+       Closes (i.e. removes) the given queue QUEUE.
+
+OPTIONS
+       -h, --help
+           Print this help and exit.
 
    Exit status
        0  if OK,
@@ -74,39 +78,37 @@ until [ -z "${1}" ] ; do
       abort "Unknown option '${1}'"
       ;;
     *)
-      queue=${1%/}
+      queue=${1}
       ;;
   esac
   shift
 done
 
 ###############################################################################
-if [ -z ${queue} ] ; then
+if [ -z "${queue}" ] ; then
   abort "sqs-close: no queue given"
 fi
 
+if [ ! -d ${vardir} ] ; then
+  abort "sqs-start: cannot access vardir '${vardir}'"
+fi
+
 key="$(hostname).$$"
+sqsguard lock ${vardir} ${key} || abort "sqs-close: cannot lock '${vardir}'"
 
 queuedir=${vardir}/${queue}
-parent=${queuedir%/*}
 
-if ! [ -e ${queuedir} ] ; then
-  debug "sqs-close: path '${queuedir}' does not exist"
+if [ ! -d ${queuedir} ] ; then
   abort "sqs-close: queue '${queue}' does not exist"
 fi
 
-if ! [ -d ${queuedir} ] ; then
-  debug "sqs-close: path '${queuedir}' does not point to a directory"
-  abort "sqs-close: queue '${queue}' does not exist"
-fi
 
-sqsguard lock ${parent} ${key} || abort "sqs-close: cannot lock '${parent}'"
+sqsguard lock ${queuedir} ${key} || { sqsguard unlock ${vardir} ${key} ; abort "sqs-close: cannot lock '${queuedir}'" ; }
 
-sqsguard lock ${queuedir} ${key} || { sqsguard unlock ${parent} ${key} ; abort "sqs-close: cannot lock '${queuedir}'" ; }
-
+# check whether queue is on halt? processes running?
 rm -rf ${queuedir}
 
-sqsguard unlock ${parent} ${key} || abort "sqs-close: cannot unlock '${parent}'"
+sqsguard unlock ${vardir} ${key} || abort "sqs-close: cannot unlock '${vardir}'"
 
 exit ${E_SUCCESS}
 
