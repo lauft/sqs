@@ -47,15 +47,14 @@ if ! [ -d ${queue} ] ; then
   abort "sqsdispatch: queue '${queue}' does not exist! [${host}]"
 fi
 
-key="${host}.$$"
-
-sqsguard lock ${queue} ${key} || exit $?
-
-state=$(cat ${queuedir}/info/state)
+state=$(cat ${queue}/info/state)
 
 if [ "${state}" != "run" ] ; then
   exit 0
 fi
+
+key="${host}.$$"
+sqsguard lock ${queue} ${key} || exit $?
 
 # retrieve runner count on host
 nrun=$(sqs get ${queue}/info/hosts ${host} 0)
