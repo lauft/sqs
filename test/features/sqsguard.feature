@@ -57,5 +57,5 @@ Feature: sqsguard
         And directory "lockfile" does not exist
         And I run "sqsguard" with "lock myqueue sqstoken"
         When I run "sqsguard" with "unlock myqueue sqstoken"
-        And directory "lockfile" does not exist
         Then it should pass
+        And directory "lockfile" does not exist
