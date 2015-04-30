@@ -34,14 +34,8 @@ Feature: sqs-help
         | add     |
         | close   |
         | config  |
-        | deploy  |
-        | dismiss |
-        | get     |
-        | getopt  |
         | help    |
         | init    |
         | remove  |
-        | set     |
-        | setopt  |
         | start   |
         | stop    |
