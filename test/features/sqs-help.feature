@@ -40,6 +40,7 @@ Feature: sqs-help
         | getopt  |
         | help    |
         | init    |
+        | remove  |
         | set     |
         | setopt  |
         | start   |
