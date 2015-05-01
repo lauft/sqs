@@ -35,7 +35,7 @@ SQSFILES=$(addprefix $(BINDIR)/,$(FILES))
 
 SETUP=sqscommon
 
-.PHONY: test
+.PHONY: test composer
 
 default: $(SETUP)
 	@echo "Run 'make install' to install SQS"
@@ -62,11 +62,24 @@ uninstall:
 	@rm -fv $(BINDIR)/sqs*
 	@rm -rfv $(VARDIR)
 
-clean:
+distclean: clean
 	@rm -f Makefile
 	@rm -f sqscommon
 
-test:
+clean:
+	@rm -rf test/vendor test/bin
+
+test: behatinstall
 	@cd test; \
 	bin/behat
 
+behatinstall: test/composer.lock composer
+	@cd test; \
+	composer install
+
+composer:
+	@if ! which composer >/dev/null 2>&1 ; then \
+	  echo "SQS test suite requires Behat (installed via composer)." ; \
+	  echo "Did not find composer, please install (www.getcomposer.org)!" ; \
+	  exit 1 ; \
+	fi
