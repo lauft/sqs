@@ -257,7 +257,7 @@ result done
 # List the possible Makefiles
 #
 if [ -z "${quiet}" ] ; then
-    result "To install SQS type:"
+    result "To install SQS in '${bindir}' type:"
     result ""
     result "   make install"
     result ""
