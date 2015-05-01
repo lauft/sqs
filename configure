@@ -101,8 +101,8 @@ Configures SQS for the current setup.
 Usage: ${progname} [OPTION]
 
    FLAG            DESCRIPTION               DEFAULT
+   --prefix        Installation prefix       (${HOME}/.local)
    --bindir        Binary installation dir   (<prefix>/bin)
-   --prefix        Installation prefix       (/usr/local)
    --vardir        Sources installation dir  (<prefix>/var/sqs)
    --no-create     Do not create output files, dry run
 
@@ -203,7 +203,7 @@ fi
 #
 # echo %%% Fleshin out paths
 #
-if test "x${prefix}" = "x";    then prefix=/usr/local; fi
+if test "x${prefix}" = "x";    then prefix=${HOME}/.local; fi
 if test "x${bindir}" = "x";    then bindir=${prefix}/bin; fi
 if test "x${vardir}" = "x";    then vardir=${prefix}/var/sqs; fi
 
