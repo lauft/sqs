@@ -28,8 +28,7 @@ FILES=sqs \
       sqsdispatch \
       $(filter-out $(wildcard sqs-*~), $(wildcard sqs-*)) \
       sqsrunner \
-      sqsguard \
-      sqstest
+      sqsguard
 
 SQSFILES=$(addprefix $(BINDIR)/,$(FILES))
 
