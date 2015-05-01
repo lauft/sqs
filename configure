@@ -224,9 +224,6 @@ fi
 #
 #---------------------------------------------------------------------
 #
-
-result "done"
-
 message "Writing ${COMMOUT}"
 sed -e "s|@prefix@|${prefix}|" \
     -e "s|@bindir@|${bindir}|" \
