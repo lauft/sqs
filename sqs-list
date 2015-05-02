@@ -1,0 +1,249 @@
+#!/bin/bash
+
+################################################################################
+# SQS - a simple queuing system                                                #
+# Copyright (C) 2012 by Thomas Lauf                                            #
+#                                                                              #
+# This file is part of SQS.                                                    #
+#                                                                              #
+# SQS is free software: you can redistribute it and/or modify                  #
+# it under the terms of the GNU General Public License as published by         #
+# the Free Software Foundation, either version 3 of the License, or            #
+# (at your option) any later version.                                          #
+#                                                                              #
+# SQS is distributed in the hope that it will be useful,                       #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of               #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                #
+# GNU General Public License for more details.                                 #
+#                                                                              #
+# You should have received a copy of the GNU General Public License            #
+# along with SQS.  If not, see <http://www.gnu.org/licenses/>.                 #
+#                                                                              #
+################################################################################
+
+################################################################################
+#                                                                              #
+# Helper script for the SQS                                                    #
+# List contents of a queue.                                                    #
+#                                                                              #
+# Parameters:                                                                  #
+# 1 = name of the queue                                                        #
+# 2 = name of the folder                                                       #
+# 3 = list of items                                                            #
+#                                                                              #
+# Returns                                                                      #
+#  0  on success                                                               #
+#  1  on failure                                                               #
+#                                                                              #
+################################################################################
+
+progname=${0}
+progdir=${progname%/*}
+progbase=${progname#${progdir}}
+progbase=${progbase%%-*}
+
+source ${progdir}/${progbase}common
+
+function print_help()
+{
+  # print help about this command
+  cat <<EOF
+NAME
+       sqs-list - List contents of a queue.
+
+SYNOPSIS
+       sqs list [OPTION]... [QUEUE] [FOLDER] [ITEM]
+
+DESCRIPTION
+       List contents of a queue.
+
+OPTIONS
+       -h, --help
+           Print this help and exit.
+
+   Exit status
+       0  if OK,
+       1  else.
+
+AUTHOR
+       Written by Thomas Lauf (lauf.thomas@tngtech.com)
+
+SQS
+       Part of the sqs suite
+EOF
+}
+
+function print_descr()
+{
+  # a one-liner about this command
+  echo "List a queue."
+}
+
+#_______________________________________________________________________________
+function sqs_list()
+{
+  # helper function for listing
+  # list all queues, if no queue specified
+  # 
+  local queue=${1}
+
+  if [ "x${queue}" = "x" ] ; then
+    list=$(ls ${vardir} 2>/dev/null)
+      
+    if [ "x${list}" = "x" ] ; then
+      echo "No queues in system."
+      return
+    fi
+ 
+    cnt=$(echo ${list} | wc -w | sed -e "s| ||g")
+
+    echo "${cnt} queue(s) in total:"
+    for que in ${list} ; do
+      sqs_list_queue ${que}
+    done
+    
+    return
+  fi
+
+  if ! [ -e "${vardir}/${queue}" ] ; then
+    echo "sqs-list: Error, queue '${queue}' does not exist"
+    return
+  fi
+  
+  sqs_list_queue $*
+
+} # sqs_list
+
+#_______________________________________________________________________________
+function sqs_list_queue()
+{
+  # show contents of a folder in a queue
+  # list short description of all folders, if no folder specified
+  #
+  local queue=${1}
+  local folder=${2}
+
+  if [ "x${folder}" = "x" ] ; then
+    local ecnt=$(ls ${vardir}/${queue}/exec | wc -l | sed -e "s| ||g")
+    local wcnt=$(ls ${vardir}/${queue}/wait | wc -l | sed -e "s| ||g")
+    local pcnt=$(ls ${vardir}/${queue}/proc | wc -w | sed -e "s| ||g")
+    local hcnt=$(wc -l ${vardir}/${queue}/info/hosts | sed -e "s|^[ ]*\([0-9]\+\).*|\1|g")
+    local tcnt=0
+    ((tcnt=ecnt+wcnt))
+    echo "'${queue}': total ${tcnt}, exec ${ecnt}, wait ${wcnt}, proc ${pcnt}, host(s) ${hcnt}"
+    return
+  fi
+
+  if [ "${folder}" = "all" ] ; then
+    sqs_list_queue ${queue} "proc"
+    sqs_list_queue ${queue} "exec"
+    sqs_list_queue ${queue} "wait"
+    return
+  fi
+
+  if [ -e ${vardir}/${queue}/${folder} ] ; then
+    local cnt=$(ls ${vardir}/${queue}/${folder} | wc -w | sed -e "s| ||g")
+    
+    case "${folder}" in
+      "exec" )
+        if [ ${cnt} -eq 0 ] ; then
+          echo "Queue '${queue}' is not executing any tasks"
+          return
+        fi    
+        echo "Queue '${queue}' is executing ${cnt} task(s):"
+        ;;
+      "wait" )
+        if [ ${cnt} -eq 0 ] ; then
+          echo "No waiting tasks in queue '${queue}'"
+          return
+        fi
+        echo "${cnt} task(s) waiting in queue '${queue}':"
+        ;;
+      "proc" )
+        if [ ${cnt} -eq 0 ] ; then
+          echo "No processes in queue '${queue}'"
+          return
+        fi
+        local hcnt=$(wc -l ${vardir}/${queue}/info/hosts | sed -e "s|^[ ]*\([0-9]\+\).*|\1|g")
+        echo "Queue '${queue}' runs ${cnt} process(es) on ${hcnt} host(s):"   
+        ;;
+    esac
+    
+    sqs_list_queue_item $*
+    return
+  fi
+
+  echo "sqs-list: Error, invalid folder '${folder}'. Must be (exec|wait|proc)!"
+  
+} # sqs_list_queue
+
+#_______________________________________________________________________________
+function sqs_list_queue_item()
+{
+  # list items in folder exec/wait/proc.
+  # if no item(s) specified, list all available in folder
+  #
+  local queue=${1}; shift
+  local folder=${1}; shift
+  local list=$*
+
+  if [ "x${list}" = "x" ] ; then
+    list=$(ls ${vardir}/${queue}/${folder} | sort -n)
+  fi
+ 
+  for item in ${list} ; do
+    case "${item}" in
+      "first")
+        item=$(ls ${vardir}/${queue}/wait/ | sort -n | head -n 1)
+        sqs_list_queue_item ${queue} ${folder} ${item}
+        ;;
+      "last")
+        item=$(ls ${vardir}/${queue}/wait/ | sort -n | tail -n 1)
+        sqs_list_queue_item ${queue} ${folder} ${item}
+        ;;
+      *)
+        if [ -e ${vardir}/${queue}/${folder}/${item} ] ; then
+          echo -n "${item}: "
+          cat ${vardir}/${queue}/${folder}/${item}
+        fi
+        ;;
+    esac
+  done
+} # sqs_list_queue_item
+
+# parse options/arguments
+until [ -z "${1}" ] ; do
+  case "${1}" in
+    --describe)
+      print_descr
+      exit
+      ;;
+    --help)
+      print_help
+      exit
+      ;;
+    -*)
+      abort "Unknown option '${1}'"
+      ;;
+    *)
+      if [ -z "${queue}" ] ; then
+	    queue=${1}
+      elif [ -z "${folder}" ] ; then
+	    folder=${1}
+      else
+        items="${items} ${1}"
+      fi
+      ;;
+  esac
+  shift
+done
+
+if [[ ! -z "${queue}" && ! -z "${folder}" && ! -z "${items}" ]] ; then
+  sqs_list_queue_item ${queue} ${folder} ${items}
+elif [[ ! -z "${queue}" && ! -z "${folder}" ]] ; then
+  sqs_list_queue ${queue} ${folder}
+else
+  sqs_list ${queue}
+fi
+
+### EOF
