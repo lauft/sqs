@@ -1,8 +1,11 @@
 <?php
 
 use Behat\Behat\Context\Context;
+use Behat\Behat\Hook\Scope\AfterScenarioScope;
+use Behat\Behat\Hook\Scope\AfterStepScope;
 use Behat\Behat\Hook\Scope\BeforeFeatureScope;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+use Behat\Behat\Tester\Exception\PendingException;
 use Behat\Gherkin\Node\PyStringNode;
 use PHPUnit\Framework\Assert;
 use Symfony\Component\Process\Process;
@@ -105,6 +108,8 @@ class FeatureContext implements Context
         exec('./configure --prefix '.$testsite, $output, $return);
         exec('make');
         exec('make install');
+
+        exec('cp test/sqstesttask '.self::$binDir);
     }
 
     /**
@@ -122,6 +127,17 @@ class FeatureContext implements Context
      */
     public static function beforeScenario(BeforeScenarioScope $scope)
     {
+        exec('pgrep -f sqs && kill -9 $(pgrep -f sqs)');
+        exec('rm -rf '.self::$varDir.DIRECTORY_SEPARATOR.'sqs'.DIRECTORY_SEPARATOR.'*');
+    }
+
+    /**
+     * @AfterScenario
+     * @param AfterScenarioScope $scope
+     */
+    public static function afterScenario(AfterScenarioScope $scope)
+    {
+        exec('pgrep -f sqs && kill -9 $(pgrep -f sqs)');
         exec('rm -rf '.self::$varDir.DIRECTORY_SEPARATOR.'sqs'.DIRECTORY_SEPARATOR.'*');
     }
 
@@ -146,6 +162,18 @@ class FeatureContext implements Context
     public function aDirectory($filename)
     {
         mkdir($this->workingDir.DIRECTORY_SEPARATOR.$filename);
+    }
+
+    /**
+     * @Given job :cmd is running
+     * @Given :cnt jobs :cmd are running
+     */
+    public function iWaitForJobToRun($cmd, $cnt = 1, $timeout = 60)
+    {
+        $process = Process::fromShellCommandLine('while [ '.$cnt.' -gt $(pgrep -f '.$cmd.' | wc -l) ] ; do sleep 1 ; done');
+        $process->setTimeout($timeout);
+        $process->run();
+        Assert::assertEquals(0, $process->getExitCode());
     }
 
     /**

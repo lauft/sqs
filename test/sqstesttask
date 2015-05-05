@@ -1,0 +1,19 @@
+#!/bin/bash
+
+limit=${1:-10}
+
+if [ ${limit} -gt 0 ] ; then
+  echo "task $$ is limited to ${limit} rounds..."
+fi
+
+while [ ${limit} -ne 0 ] ; do
+  if [ ${limit} -gt 0 ] ; then
+    echo "limited task $$, round ${limit}"
+  else
+    echo "unlimited task $$, round ${limit/-/}"
+  fi
+  ((limit--))
+  sleep 1
+done
+
+### EOF
