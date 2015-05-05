@@ -141,6 +141,15 @@ class FeatureContext implements Context, SnippetAcceptingContext
     }
 
     /**
+     * @Given /^(?:there is )?a directory "([^"]*)"$/
+     * @param $filename
+     */
+    public function aDirectory($filename)
+    {
+        mkdir($this->workingDir.DIRECTORY_SEPARATOR.$filename);
+    }
+
+    /**
      * @When I run :command with :arguments
      *
      * @param string $commandLine

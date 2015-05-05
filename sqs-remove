@@ -74,6 +74,92 @@ function print_descr()
   echo "Remove a task from a queue."
 }
 
+#_______________________________________________________________________________
+sqs_remove() {
+  # helper function for remove
+  # remove only applies to waiting tasks!
+  #
+  local queue=${1}
+
+  if [ "x${queue}" = "x" ] ; then
+    echo "sqs-remove: Error, specify queue!"
+    return
+  fi
+
+  if [ -e ${vardir}/${queue} ] ; then
+    sqs_remove_queue ${*}
+  else
+    echo "sqs-remove: Error, queue '${queue}' does not exist!"
+  fi
+} # sqs_remove
+
+#_______________________________________________________________________________
+sqs_remove_queue() {
+  # remove tasks from queue
+  #
+  local queue=${1}; shift
+  local task=${*}
+
+  if [ "x${task}" = "x" ] ; then
+     # remove all waiting tasks from queue
+     task="all"
+  fi
+
+  sqs_remove_task ${queue} ${task}
+
+} # sqs_remove_queue
+
+#_______________________________________________________________________________
+sqs_remove_task() {
+  # remove specified waiting tasks in queue
+  #
+  local queue=${1}; shift
+  local list=${*}
+
+  for task in ${list} ; do
+    case "${task}" in
+      "first")
+        task=$(ls ${vardir}/${queue}/wait/ | sort -n | head -n 1)
+        sqs_remove_task_noquery ${queue} ${task}
+        ;;
+      "last")
+        task=$(ls ${vardir}/${queue}/wait/ | sort -n | tail -n 1)
+        sqs_remove_task_noquery ${queue} ${task}
+        ;;
+      "all")
+        tsklist=`ls ${vardir}/${queue}/wait/ | sort -n`
+        for tsk in ${tsklist} ; do
+          sqs_remove_task_noquery ${queue} ${tsk}
+        done
+        ;;
+      [0-9]*)
+        sqs_remove_task_noquery ${queue} ${task}
+        ;;
+      *)
+        abort "sqs-remove: Error, unknown argument '${task}'"
+        ;;
+    esac
+  done
+} # sqs_remove_task
+
+#_______________________________________________________________________________
+sqs_remove_task_noquery() {
+  # Helper function
+  # Function does not lock queue, this has to be done by the calling function!
+  #
+  local queue=${1}
+  local task=${2}
+
+  echo -n "Removing ${task}: "
+  if [ ! -e ${vardir}/${queue}/wait/${task} ] ; then
+    abort "sqs-remove: Error, no waiting task with id ${task}!"
+  fi
+
+  cat ${vardir}/${queue}/wait/${task}
+  rm ${vardir}/${queue}/wait/${task}
+
+} # sqs_remove_task_noquery
+
 # parse options/arguments
 until [ -z "${1}" ] ; do
   case "${1}" in
@@ -117,7 +203,7 @@ key=$(hostname).$$
 sqsguard lock ${queuedir} $key || abort "sqs-remove: cannot lock queue ${queue}"
 
 info "sqs-remove: remove task ${id} from queue '${queue}'"
-rm ${queuedir}/wait/${id} || { sqsguard unlock ${queuedir} ${key}; abort "sqs-remove: cannot remove task ${id} from queue '${queue}'"; }
+sqs_remove ${queue} ${id} || { sqsguard unlock ${queuedir} ${key}; abort "sqs-remove: cannot remove task ${id} from queue '${queue}'"; }
 
 sqsguard unlock ${queuedir} ${key} || abort "sqs-remove: cannot unlock queue ${queue}"
 
