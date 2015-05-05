@@ -1,0 +1,207 @@
+#!/bin/bash
+
+################################################################################
+# SQS - a simple queuing system                                                #
+# Copyright (C) 2012 by Thomas Lauf                                            #
+#                                                                              #
+# This file is part of SQS.                                                    #
+#                                                                              #
+# SQS is free software: you can redistribute it and/or modify                  #
+# it under the terms of the GNU General Public License as published by         #
+# the Free Software Foundation, either version 3 of the License, or            #
+# (at your option) any later version.                                          #
+#                                                                              #
+# SQS is distributed in the hope that it will be useful,                       #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of               #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                #
+# GNU General Public License for more details.                                 #
+#                                                                              #
+# You should have received a copy of the GNU General Public License            #
+# along with SQS.  If not, see <http://www.gnu.org/licenses/>.                 #
+#                                                                              #
+################################################################################
+
+################################################################################
+#                                                                              #
+# Helper script for the SQS                                                    #
+# Listing a queue directory.                                                   #
+#                                                                              #
+# Parameters:                                                                  #
+# 1 = name of the queue                                                        #
+# 2 = name of the folder                                                       #
+# 3 = list of items                                                            #
+#                                                                              #
+# Returns                                                                      #
+#  0  on success                                                               #
+#  1  on failure                                                               #
+#                                                                              #
+################################################################################
+
+progname=${0}
+progdir=${progname%/*}
+progbase=${progname#${progdir}}
+progbase=${progbase%%-*}
+
+source ${progdir}/${progbase}common
+
+function print_help()
+{
+  # print help about this command
+  cat <<EOF
+NAME
+       sqs-kill - Kill queue tasks.
+
+SYNOPSIS
+       sqs kill [OPTION]... [QUEUE] [TASKS]
+
+DESCRIPTION
+       Kill tasks.
+
+OPTIONS
+       -h, --help
+           Print this help and exit.
+
+   Exit status
+       0  if OK,
+       1  else.
+
+AUTHOR
+       Written by Thomas Lauf (lauf.thomas@tngtech.com)
+
+SQS
+       Part of the sqs suite
+EOF
+}
+
+function print_descr()
+{
+  # a one-liner about this command
+  echo "Kill queue tasks."
+}
+
+#_______________________________________________________________________________
+function sqs_kill()
+{
+  # helper function for remove
+  # remove only applies to waiting tasks!
+  # 
+  local queue=${1}
+
+  if [ "x${queue}" = "x" ] ; then
+    abort "sqs-kill: Error, specify queue!"
+  fi
+
+  if [ -e ${vardir}/${queue} ] ; then
+    sqs_kill_queue ${*}
+  else
+    abort "sqs-kill: Error, queue '${queue}' does not exist!"
+  fi
+} # sqs_kill
+
+#_______________________________________________________________________________
+function sqs_kill_queue()
+{
+  # kill tasks in queue
+  #
+  local queue=${1}; shift
+  local task=${*}
+
+  if [ "x${task}" = "x" ] ; then
+     # kill all currently executed tasks in queue
+     task="all"
+  fi
+  
+  sqs_kill_task ${queue} ${task}
+
+} # sqs_kill_queue
+
+#_______________________________________________________________________________
+function sqs_kill_task()
+{
+  # kill specified executed tasks in queue
+  #
+  local queue=${1}; shift
+  local list=${*}
+
+  for task in ${list} ; do
+    case "${task}" in
+      "first")
+        task=$(ls ${vardir}/${queue}/exec/ | sort -n | head -n 1)
+        sqs_kill_task_noquery ${queue} ${task}
+        ;;
+      "last")
+        task=$(ls ${vardir}/${queue}/exec/ | sort -n | tail -n 1)
+        sqs_kill_task_noquery ${queue} ${task}
+        ;;
+      "all")
+        tsklist=`ls ${vardir}/${queue}/exec/ | sort -n`
+        for tsk in ${tsklist} ; do
+          sqs_kill_task_noquery ${queue} ${tsk}
+        done
+        ;;
+      [0-9]*)
+        sqs_kill_task_noquery ${queue} ${task}
+        ;;
+      *)
+        abort "sqs-kill: Error, unknown argument '${task}'"
+        ;;    
+    esac
+  done
+} # sqs_kill_task
+
+#_______________________________________________________________________________
+function sqs_kill_task_noquery()
+{
+  # Helper function
+  # Function does not lock queue, this has to be done by the calling function!
+  #
+  local queue=${1}
+  local task=${2}
+
+  if [ ! -e ${vardir}/${queue}/exec/${task} ] ; then
+    abort "sqs-kill: Error, no task with id ${task}!"
+  fi
+
+  process=$(grep --files-with-matches ${task} ${vardir}/${queue}/proc/*)
+  process=${process##*/}
+  process=${process##*.}
+  echo "Kill task ${task}: Sending kill signal to PID ${process}"
+  kill -9 ${process}
+} # sqs_kill_task_noquery
+
+# parse options/arguments
+until [ -z "${1}" ] ; do
+  case "${1}" in
+    --describe)
+      print_descr
+      exit
+      ;;
+    --help)
+      print_help
+      exit
+      ;;
+    -*)
+      abort "Unknown option '${1}'"
+      ;;
+    *)
+      if [ -z "${queue}" ] ; then
+	    queue=${1}
+      elif [ -z "${folder}" ] ; then
+	    folder=${1}
+      else
+        tasks="${tasks} ${1}"
+      fi
+      ;;
+  esac
+  shift
+done
+
+if [[ ! -z "${queue}" && ! -z "${folder}" && ! -z "${tasks}" ]] ; then
+  sqs_kill_task ${queue} ${folder} ${tasks}
+elif [[ ! -z "${queue}" && ! -z "${folder}" ]] ; then
+  sqs_kill_queue ${queue} ${folder}
+else
+  sqs_kill ${queue}
+fi
+
+### EOF
