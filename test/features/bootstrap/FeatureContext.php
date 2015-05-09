@@ -106,6 +106,8 @@ class FeatureContext implements Context, SnippetAcceptingContext
         exec('./configure --prefix '.$testsite, $output, $return);
         exec('make');
         exec('make install');
+
+        exec('cp test/sqstesttask '.self::$binDir);
     }
 
     /**
