@@ -2,9 +2,11 @@
 
 use Behat\Behat\Context\Context;
 use Behat\Behat\Context\SnippetAcceptingContext;
+use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Behat\Behat\Hook\Scope\AfterStepScope;
 use Behat\Behat\Hook\Scope\BeforeFeatureScope;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+use Behat\Behat\Tester\Exception\PendingException;
 use Behat\Gherkin\Node\PyStringNode;
 use Behat\Gherkin\Node\TableNode;
 use Symfony\Component\Process\PhpExecutableFinder;
@@ -125,6 +127,17 @@ class FeatureContext implements Context, SnippetAcceptingContext
      */
     public static function beforeScenario(BeforeScenarioScope $scope)
     {
+        exec('pgrep sqs && kill -9 $(pgrep sqs)');
+        exec('rm -rf '.self::$varDir.DIRECTORY_SEPARATOR.'sqs'.DIRECTORY_SEPARATOR.'*');
+    }
+
+    /**
+     * @AfterScenario
+     * @param AfterScenarioScope $scope
+     */
+    public static function afterScenario(AfterScenarioScope $scope)
+    {
+        exec('pgrep sqs && kill -9 $(pgrep sqs)');
         exec('rm -rf '.self::$varDir.DIRECTORY_SEPARATOR.'sqs'.DIRECTORY_SEPARATOR.'*');
     }
 
@@ -149,6 +162,18 @@ class FeatureContext implements Context, SnippetAcceptingContext
     public function aDirectory($filename)
     {
         mkdir($this->workingDir.DIRECTORY_SEPARATOR.$filename);
+    }
+
+    /**
+     * @Given job :cmd is running
+     * @Given :cnt jobs :cmd are running
+     */
+    public function iWaitForJobToRun($cmd, $cnt = 1, $timeout = 60)
+    {
+        $process = new Process('while [ '.$cnt.' -gt $(pgrep '.$cmd.' | wc -l) ] ; do sleep 1 ; done');
+        $process->setTimeout($timeout);
+        $process->run();
+        PHPUnit_Framework_Assert::assertEquals(0, $process->getExitCode());
     }
 
     /**
