@@ -41,17 +41,18 @@ function print_help()
   # print help about this command
   cat <<EOF
 NAME
-       ${0##*/} - <short description>
+       sqs-dismiss - remove a host for a queue.
 
 SYNOPSIS
-       ${0##*/} [OPTION]... [ARGUMENT]...
+       sqs dismiss QUEUE HOST [OPTION]...
 
 DESCRIPTION
-       Place a description of the command here. Followed by details about the
-       individual options
+       Dismiss host HOST for the given queue QUEUE. No more tasks will be
+       processed on HOST.
 
-       -<short-option>, --<long-option>
-              Description of the specific option
+OPTIONS
+       -h, --help
+           Print this help and exit.
 
    Exit status
        0  if OK,
