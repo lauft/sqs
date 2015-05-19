@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "da1be080e5857104fd2daf1255271a01",
+    "content-hash": "e94e61bc2e80f07f876a9efcbcbd02f7",
     "packages": [
         {
             "name": "behat/behat",
@@ -334,6 +334,49 @@
                 }
             ],
             "time": "2024-05-06T16:37:16+00:00"
+        },
+        {
+            "name": "lauft/behat-bash-extension",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/lauft/behat-bash-extension.git",
+                "reference": "03d770f9286efacbd31052fe6285579d64621134"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/lauft/behat-bash-extension/zipball/03d770f9286efacbd31052fe6285579d64621134",
+                "reference": "03d770f9286efacbd31052fe6285579d64621134",
+                "shasum": ""
+            },
+            "require": {
+                "behat/behat": "^3.14",
+                "php": ">=8.2",
+                "phpunit/phpunit": "^10.0 || ^11.0",
+                "symfony/process": "^7.0"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Lauft\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "lauft",
+                    "email": "thomas.lauf@tngtech.com"
+                }
+            ],
+            "description": "Bash extension for Behat BDD tool",
+            "support": {
+                "source": "https://github.com/lauft/behat-bash-extension/tree/main",
+                "issues": "https://github.com/lauft/behat-bash-extension/issues"
+            },
+            "time": "2026-08-15T11:19:15+00:00"
         },
         {
             "name": "myclabs/deep-copy",
@@ -3740,7 +3783,9 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "lauft/behat-bash-extension": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {},

@@ -2,12 +2,19 @@
   "require": {
     "behat/behat": "^3.14",
     "phpunit/phpunit": "^11.0",
-    "symfony/process": "^7.0"
+    "symfony/process": "^7.0",
+    "lauft/behat-bash-extension": "@dev"
   },
   "config": {
     "bin-dir": "bin/",
     "platform": {
       "php": "8.2"
     }
-  }
+  },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/lauft/behat-bash-extension.git"
+    }
+  ]
 }

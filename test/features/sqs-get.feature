@@ -7,7 +7,7 @@ Feature: sqs-get
         Given I run "sqs init" with "myqueue"
 
     Scenario: Call 'sqs-get FILE HOST DEFAULT' reads an existing setting
-        When I am in the "var/sqs/myqueue/info" path
+        When I am in directory "var/sqs/myqueue/info"
         And I run "sqs-get" with "nproc $(hostname) 0"
         Then it should pass
         And the output should contain:
@@ -16,7 +16,7 @@ Feature: sqs-get
         """
 
     Scenario: Call 'sqs-get FILE HOST DEFAULT' falls back to default
-        When I am in the "var/sqs/myqueue/info" path
+        When I am in directory "var/sqs/myqueue/info"
         And I run "sqs-get" with "nproc nohost 42"
         Then it should pass
         And the output should contain:
