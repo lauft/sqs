@@ -4,15 +4,15 @@ Feature: sqs-init
     I want to initialise a queue
 
     Scenario: Call 'sqs init' with queue name
-        When I run "sqs init" with "myqueue"
+        When I run "sqs init myqueue"
         Then it should pass
-        When I am in the "var/sqs" path
+        When I change to directory "/var/sqs"
         Then file "myqueue" should exist
-        When I am in the "myqueue" path
+        When I change to directory "/var/sqs/myqueue"
         Then directory "info" exists
-        When I am in the "info" path
+        When I change to directory "/var/sqs/myqueue/info"
         Then file "state" exists
 
     Scenario: Call 'sqs init' without queue name
-        When I run "sqs init" with " "
+        When I run "sqs init"
         Then it should fail

@@ -7,7 +7,7 @@ Feature: sqs-set
         Given I run "sqs init" with "myqueue"
 
     Scenario: Call 'sqs-set FILE HOST VALUE' writes an entry
-        When I am in the "var/sqs/myqueue/info" path
+        When I am in directory "var/sqs/myqueue/info"
         And I run "sqs-set" with "hosts testhost 4"
         Then it should pass
         Then "hosts" file should contain:
@@ -16,7 +16,7 @@ Feature: sqs-set
         """
 
     Scenario: Call 'sqs-set FILE HOST VALUE' overwrites an existing entry
-        When I am in the "var/sqs/myqueue/info" path
+        When I am in directory "var/sqs/myqueue/info"
         And I run "sqs-set" with "hosts testhost 4"
         And I run "sqs-set" with "hosts testhost 2"
         Then it should pass
