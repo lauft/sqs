@@ -1,7 +1,6 @@
 <?php
 
-use Behat\Behat\Context\Context;
-use Behat\Behat\Context\SnippetAcceptingContext;
+use Lauft\Behat\BashExtension\Context\BashContext;
 use Behat\Behat\Hook\Scope\AfterStepScope;
 use Behat\Behat\Hook\Scope\BeforeFeatureScope;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
@@ -13,7 +12,7 @@ use Symfony\Component\Process\Process;
 /**
  * Defines application features from the specific context.
  */
-class FeatureContext implements Context, SnippetAcceptingContext
+class FeatureContext extends BashContext
 {
     private $testEtcDir;
     private static $varDir;
