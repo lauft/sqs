@@ -4,14 +4,14 @@ Feature: sqs-list
     I want to list a queue
 
     Background:
-        Given I run "sqs init" with "myqueue"
-        And I run "sqs add" with "myqueue 'echo task 0'"
-        And I run "sqs add" with "myqueue 'echo task 1'"
-        And I run "sqs add" with "myqueue 'echo task 2'"
-        And I run "sqs add" with "myqueue 'echo task 3'"
+        Given I run "sqs init myqueue"
+        And I run "sqs add myqueue 'echo task 0'"
+        And I run "sqs add myqueue 'echo task 1'"
+        And I run "sqs add myqueue 'echo task 2'"
+        And I run "sqs add myqueue 'echo task 3'"
 
     Scenario: Call 'sqs list' should list all queues
-        When I run "sqs list" with " "
+        When I run "sqs list"
         Then it should pass
         And the output should contain:
         """
@@ -20,7 +20,7 @@ Feature: sqs-list
         """
 
     Scenario: Call 'sqs list' with queue name
-        When I run "sqs list" with "myqueue"
+        When I run "sqs list myqueue"
         Then it should pass
         And the output should contain:
         """
@@ -28,7 +28,7 @@ Feature: sqs-list
         """
 
     Scenario: Call 'sqs list' with queue name
-        When I run "sqs list" with "myqueue all"
+        When I run "sqs list myqueue all"
         Then it should pass
         And the output should contain:
         """
@@ -42,7 +42,7 @@ Feature: sqs-list
         """
 
     Scenario: Call 'sqs list myqueue wait'
-        When I run "sqs list" with "myqueue wait"
+        When I run "sqs list myqueue wait"
         Then it should pass
         And the output should contain:
         """
@@ -54,7 +54,7 @@ Feature: sqs-list
         """
 
     Scenario: Call 'sqs list myqueue wait'
-        When I run "sqs list" with "myqueue wait first"
+        When I run "sqs list myqueue wait first"
         Then it should pass
         And the output should contain:
         """
@@ -62,7 +62,7 @@ Feature: sqs-list
         """
 
     Scenario: Call 'sqs list myqueue wait'
-        When I run "sqs list" with "myqueue wait last"
+        When I run "sqs list myqueue wait last"
         Then it should pass
         And the output should contain:
         """
@@ -70,7 +70,7 @@ Feature: sqs-list
         """
 
     Scenario: Call 'sqs list myqueue wait'
-        Then I run "sqs list" with "myqueue wait 1 3"
+        Then I run "sqs list myqueue wait 1 3"
         Then it should pass
         And the output should contain:
         """
@@ -79,7 +79,7 @@ Feature: sqs-list
         """
 
     Scenario: Call 'sqs list myqueue exec'
-        When I run "sqs list" with "myqueue exec"
+        When I run "sqs list myqueue exec"
         Then it should pass
         And the output should contain:
         """
@@ -87,7 +87,7 @@ Feature: sqs-list
         """
 
     Scenario: Call 'sqs list myqueue proc'
-        When I run "sqs list" with "myqueue proc"
+        When I run "sqs list myqueue proc"
         Then it should pass
         And the output should contain:
         """

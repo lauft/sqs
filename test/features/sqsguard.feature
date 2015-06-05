@@ -4,58 +4,58 @@ Feature: sqsguard
     I want to lock sqs directories
 
     Background: I have a queue
-        Given I run "sqs init" with "myqueue"
+        Given I run "sqs init myqueue"
 
     Scenario: Call 'sqsguard'
-        When I run "sqsguard" with " "
+        When I run "sqsguard"
         Then it should fail
 
     Scenario: Call 'sqsguard lock'
-        When I run "sqsguard" with "lock"
+        When I run "sqsguard lock"
         Then it should fail
 
     Scenario: Call 'sqsguard lock myqueue'
-        When I run "sqsguard" with "lock myqueue"
+        When I run "sqsguard lock myqueue"
         Then it should fail
 
     Scenario: Call 'sqsguard lock myqueue token'
-        Given I am in the "var/sqs" path
+        Given I am in directory "var/sqs"
         And directory "myqueue" exists
         And directory "lockfile" does not exist
-        When  I run "sqsguard" with "lock myqueue sqstoken"
+        When  I run "sqsguard lock myqueue sqstoken"
         Then it should pass
-        When I am in the "myqueue" path
+        When I change to directory "/var/sqs/myqueue"
         Then directory "lockfile" should exist
 
     Scenario: Try to lock already locked queue
-        Given I am in the "var/sqs" path
+        Given I am in directory "/var/sqs"
         And directory "myqueue" exists
         And directory "lockfile" does not exist
-        And I run "sqsguard" with "lock myqueue sqstoken"
-        When I run "sqsguard" with "lock myqueue token 1"
+        And I run "sqsguard lock myqueue sqstoken"
+        When I run "sqsguard lock myqueue token 1"
         Then it should fail
 
     Scenario: Call 'sqsguard unlock'
-        When I run "sqsguard" with "unlock"
+        When I run "sqsguard unlock"
         Then it should fail
 
     Scenario: Call 'sqsguard unlock myqueue'
-        When I run "sqsguard" with "unlock myqueue"
+        When I run "sqsguard unlock myqueue"
         Then it should fail
 
     Scenario: Unlock queue with wrong token
-        Given I am in the "var/sqs" path
+        Given I am in directory "/var/sqs"
         And directory "myqueue" exists
         And directory "lockfile" does not exist
-        And I run "sqsguard" with "lock myqueue sqstoken"
-        When I run "sqsguard" with "unlock myqueue foo"
+        And I run "sqsguard lock myqueue sqstoken"
+        When I run "sqsguard unlock myqueue foo"
         Then it should fail
 
     Scenario: Unlock queue with correct token
-        Given I am in the "var/sqs" path
+        Given I am in directory "/var/sqs"
         And directory "myqueue" exists
         And directory "lockfile" does not exist
-        And I run "sqsguard" with "lock myqueue sqstoken"
-        When I run "sqsguard" with "unlock myqueue sqstoken"
+        And I run "sqsguard lock myqueue sqstoken"
+        When I run "sqsguard unlock myqueue sqstoken"
         Then it should pass
         And directory "lockfile" does not exist

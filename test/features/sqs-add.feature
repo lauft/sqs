@@ -3,22 +3,24 @@ Feature: sqs-add
     As a user
     I want to add jobs to the queue
 
-    Background:
-        Given I run "sqs init" with "myqueue"
+    Background: Initialize a queue
+        Given I run "sqs init myqueue"
 
     Scenario: Call 'sqs add myqueue task'
-        When I run "sqs add" with "myqueue 'echo Hello World'"
+        When I run "sqs add myqueue 'echo task 1'"
         Then it should pass
-        When I am in the "var/sqs/myqueue" path
+        When I run "sqs add myqueue 'echo task 2'"
+        Then it should pass
+        When I change to directory "/var/sqs/myqueue"
         Then directory "lockfile" does not exist
-        And I am in the "wait" path
+        And I am in directory "/var/sqs/myqueue/wait"
         Then file "0" should exist
+        And file "1" should exist
 
-
-    Scenario: Call 'sqs add myqueue'
-        When I run "sqs add" with "myqueue"
+    Scenario: sqs-add should fail when only called with queue
+        When I run "sqs add myqueue"
         Then it should fail
 
-    Scenario: Call 'sqs add'
-        When I run "sqs add" with " "
+    Scenario: sqs-add should fail when called without arguments
+        When I run "sqs add"
         Then it should fail

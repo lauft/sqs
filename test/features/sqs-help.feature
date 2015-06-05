@@ -4,7 +4,7 @@ Feature: sqs-help
     I want to read help on commands
 
     Scenario: Call 'sqs help'
-        When I run "sqs" with "help"
+        When I run "sqs help"
         Then it should pass
         And the output should match:
         """
@@ -13,7 +13,7 @@ Feature: sqs-help
         """
 
     Scenario Outline: Call 'sqs help' with commands should display man page
-        When I run "sqs help" with <cmd>
+        When I run "sqs help <cmd>"
         Then it should pass
         And the output should match:
         """

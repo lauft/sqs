@@ -4,7 +4,7 @@ Feature: sqs
     I want to have a command line interface
 
     Scenario: Call 'sqs' without parameters should display minimal help
-        When I run "sqs" with " "
+        When I run "sqs"
         Then it should fail
         And the output should contain:
         """
@@ -17,5 +17,5 @@ Feature: sqs
         """
 
     Scenario: Call 'sqs' with non-existing command
-        When I run "sqs" with "foo"
+        When I run "sqs foo"
         Then it should fail

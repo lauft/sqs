@@ -1,12 +1,9 @@
 <?php
 
-use Lauft\Behat\BashExtension\Context\BashContext;
-use Behat\Behat\Hook\Scope\AfterStepScope;
 use Behat\Behat\Hook\Scope\BeforeFeatureScope;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Gherkin\Node\PyStringNode;
-use Behat\Gherkin\Node\TableNode;
-use Symfony\Component\Process\PhpExecutableFinder;
+use Lauft\Behat\BashExtension\Context\BashContext;
 use Symfony\Component\Process\Process;
 
 /**
@@ -29,12 +26,6 @@ class FeatureContext extends BashContext
     public function __construct()
     {
     }
-
-    /** @var Process */
-    private $process;
-
-    /** @var string */
-    private $workingDir;
 
     /** @var string */
     private $testBinDir;
@@ -82,6 +73,7 @@ class FeatureContext extends BashContext
         }
 
         $this->workingDir = $dir;
+        $this->rootDirectory = $dir;
         $this->process = new Process(null);
         $this->process->setEnv(array(
             'PATH=/bin:/usr/bin:'.$dir.DIRECTORY_SEPARATOR.'bin',
@@ -149,22 +141,6 @@ class FeatureContext extends BashContext
     }
 
     /**
-     * @When I run :command with :arguments
-     *
-     * @param string $commandLine
-     * @param string $arguments
-     */
-    public function iRun($commandLine, $arguments)
-    {
-        $arguments = strtr($arguments, array('\'' => '"'));
-
-        $this->process->setWorkingDirectory($this->workingDir);
-        $this->process->setCommandLine($commandLine.' '.$arguments);
-        $this->process->start();
-        $this->process->wait();
-    }
-
-    /**
      * Asserts a file exists with specified name and context in current workdir.
      *
      * @Given /^there should be a file named "([^"]*)" with:$/
@@ -186,19 +162,6 @@ class FeatureContext extends BashContext
         $content = file_get_contents($path);
 
         PHPUnit_Framework_Assert::assertEquals($expectedContent, $content);
-    }
-
-    /**
-     * Moves user to the specified path.
-     *
-     * @Given /^I am in the "([^"]*)" path$/
-     * @When /^I go to the "([^"]*)" path$/
-     *
-     * @param string $path
-     */
-    public function iAmInThePath($path)
-    {
-        $this->moveToNewPath($path);
     }
 
     /**
@@ -300,98 +263,6 @@ class FeatureContext extends BashContext
         }
 
         PHPUnit_Framework_Assert::assertEquals($this->getExpectedOutput($text), $fileContent);
-    }
-
-    /**
-     * Checks whether last command output contains provided string.
-     *
-     * @Then the output should contain:
-     *
-     * @param   PyStringNode $text PyString text instance
-     */
-    public function theOutputShouldContain(PyStringNode $text)
-    {
-        PHPUnit_Framework_Assert::assertContains($this->getExpectedOutput($text), $this->getOutput());
-    }
-
-    /**
-     * @Then the output should match:
-     *
-     * @param PyStringNode $string
-     */
-    public function theOutputShouldMatch(PyStringNode $string)
-    {
-        PHPUnit_Framework_Assert::assertRegExp('/^'.$string.'$/', $this->getOutput());
-    }
-
-    private function getExpectedOutput(PyStringNode $expectedText)
-    {
-        $text = strtr($expectedText, array('\'\'\'' => '"""', '%%TMP_DIR%%' => sys_get_temp_dir() . DIRECTORY_SEPARATOR));
-
-        // windows path fix
-        if ('/' !== DIRECTORY_SEPARATOR) {
-            $text = preg_replace_callback(
-                '/ features\/[^\n ]+/', function ($matches) {
-                return str_replace('/', DIRECTORY_SEPARATOR, $matches[0]);
-            }, $text
-            );
-            $text = preg_replace_callback(
-                '/\<span class\="path"\>features\/[^\<]+/', function ($matches) {
-                return str_replace('/', DIRECTORY_SEPARATOR, $matches[0]);
-            }, $text
-            );
-            $text = preg_replace_callback(
-                '/\+[fd] [^ ]+/', function ($matches) {
-                return str_replace('/', DIRECTORY_SEPARATOR, $matches[0]);
-            }, $text
-            );
-        }
-
-        return $text;
-    }
-
-    /**
-     * Checks whether previously ran command failed|passed.
-     *
-     * @Then /^it should (fail|pass)$/
-     *
-     * @param   string $success "fail" or "pass"
-     */
-    public function itShouldExitWith($success)
-    {
-        if ('fail' === $success) {
-            if (0 === $this->getExitCode()) {
-                echo 'Actual output:' . PHP_EOL . PHP_EOL . $this->getOutput();
-            }
-
-            PHPUnit_Framework_Assert::assertNotEquals(0, $this->getExitCode());
-        } else {
-            if (0 !== $this->getExitCode()) {
-                echo 'Actual output:' . PHP_EOL . PHP_EOL . $this->getOutput();
-            }
-
-            PHPUnit_Framework_Assert::assertEquals(0, $this->getExitCode());
-        }
-    }
-
-    private function getExitCode()
-    {
-        return $this->process->getExitCode();
-    }
-
-    private function getOutput()
-    {
-        $output = $this->process->getErrorOutput() . $this->process->getOutput();
-
-        // Normalize the line endings in the output
-        if ("\n" !== PHP_EOL) {
-            $output = str_replace(PHP_EOL, "\n", $output);
-        }
-
-        // Replace wrong warning message of HHVM
-        $output = str_replace('Notice: Undefined index: ', 'Notice: Undefined offset: ', $output);
-
-        return trim(preg_replace("/ +$/m", '', $output));
     }
 
     private function createFile($filename, $content)
