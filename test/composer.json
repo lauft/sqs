@@ -5,6 +5,9 @@
     "symfony/process": "^7.0"
   },
   "config": {
-    "bin-dir": "bin/"
+    "bin-dir": "bin/",
+    "platform": {
+      "php": "8.2"
+    }
   }
 }
