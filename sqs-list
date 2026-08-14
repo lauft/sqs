@@ -44,6 +44,14 @@ progbase=${progbase%%-*}
 
 source ${progdir}/${progbase}common
 
+#_______________________________________________________________________________
+# Count lines in a file, returning only the number.
+# Uses input redirection so the filename is never printed (macOS BSD wc compatible).
+function wc_lines()
+{
+  wc -l < "${1}" | tr -d ' '
+}
+
 function print_help()
 {
   # print help about this command
@@ -127,7 +135,7 @@ function sqs_list_queue()
     local ecnt=$(ls ${vardir}/${queue}/exec | wc -l | sed -e "s| ||g")
     local wcnt=$(ls ${vardir}/${queue}/wait | wc -l | sed -e "s| ||g")
     local pcnt=$(ls ${vardir}/${queue}/proc | wc -w | sed -e "s| ||g")
-    local hcnt=$(wc -l ${vardir}/${queue}/info/hosts | sed -e "s|^[ ]*\([0-9]\+\).*|\1|g")
+    local hcnt=$(wc_lines ${vardir}/${queue}/info/hosts)
     local tcnt=0
     ((tcnt=ecnt+wcnt))
     echo "'${queue}': total ${tcnt}, exec ${ecnt}, wait ${wcnt}, proc ${pcnt}, host(s) ${hcnt}"
@@ -164,8 +172,8 @@ function sqs_list_queue()
           echo "No processes in queue '${queue}'"
           return
         fi
-        local hcnt=$(wc -l ${vardir}/${queue}/info/hosts | sed -e "s|^[ ]*\([0-9]\+\).*|\1|g")
-        echo "Queue '${queue}' runs ${cnt} process(es) on ${hcnt} host(s):"   
+        local hcnt=$(wc_lines ${vardir}/${queue}/info/hosts)
+        echo "Queue '${queue}' runs ${cnt} process(es) on ${hcnt} host(s):"
         ;;
     esac
     
