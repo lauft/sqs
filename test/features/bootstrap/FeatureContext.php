@@ -1,16 +1,16 @@
 <?php
 
 use Behat\Behat\Context\Context;
-use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Behat\Hook\Scope\BeforeFeatureScope;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Gherkin\Node\PyStringNode;
+use PHPUnit\Framework\Assert;
 use Symfony\Component\Process\Process;
 
 /**
  * Defines application features from the specific context.
  */
-class FeatureContext implements Context, SnippetAcceptingContext
+class FeatureContext implements Context
 {
     private static $varDir;
     private static $binDir;
@@ -27,8 +27,11 @@ class FeatureContext implements Context, SnippetAcceptingContext
     {
     }
 
-    /** @var Process */
+    /** @var Process|null */
     private $process;
+
+    /** @var array<string,string> */
+    private $processEnv;
 
     /** @var string */
     private $workingDir;
@@ -79,11 +82,11 @@ class FeatureContext implements Context, SnippetAcceptingContext
         }
 
         $this->workingDir = $dir;
-        $this->process = new Process(null);
-        $this->process->setEnv(array(
-            'PATH=/bin:/usr/bin:'.$dir.DIRECTORY_SEPARATOR.'bin',
-            'DEBUG=1'
-        ));
+        $this->process = null;
+        $this->processEnv = array(
+            'PATH' => '/bin:/usr/bin:' . $dir . DIRECTORY_SEPARATOR . 'bin',
+            'DEBUG' => '1',
+        );
     }
 
     private static function installSqsAt($testsite)
@@ -155,8 +158,9 @@ class FeatureContext implements Context, SnippetAcceptingContext
     {
         $arguments = strtr($arguments, array('\'' => '"'));
 
+        $this->process = Process::fromShellCommandLine($commandLine . ' ' . $arguments);
         $this->process->setWorkingDirectory($this->workingDir);
-        $this->process->setCommandLine($commandLine.' '.$arguments);
+        $this->process->setEnv($this->processEnv);
         $this->process->start();
         $this->process->wait();
     }
@@ -182,7 +186,7 @@ class FeatureContext implements Context, SnippetAcceptingContext
 
         $content = file_get_contents($path);
 
-        PHPUnit_Framework_Assert::assertEquals($expectedContent, $content);
+        Assert::assertEquals($expectedContent, $content);
     }
 
     /**
@@ -208,7 +212,7 @@ class FeatureContext implements Context, SnippetAcceptingContext
      */
     public function fileShouldExist($path)
     {
-        PHPUnit_Framework_Assert::assertFileExists($this->workingDir . DIRECTORY_SEPARATOR . $path);
+        Assert::assertFileExists($this->workingDir . DIRECTORY_SEPARATOR . $path);
     }
 
     /**
@@ -221,7 +225,7 @@ class FeatureContext implements Context, SnippetAcceptingContext
      */
     public function fileShouldNotExist($path)
     {
-        PHPUnit_Framework_Assert::assertFileNotExists($this->workingDir . DIRECTORY_SEPARATOR . $path);
+        Assert::assertFileDoesNotExist($this->workingDir . DIRECTORY_SEPARATOR . $path);
     }
 
     /**
@@ -235,7 +239,7 @@ class FeatureContext implements Context, SnippetAcceptingContext
     public function directoryShouldExist($path)
     {
         // TODO add check for file type
-        PHPUnit_Framework_Assert::assertFileExists($this->workingDir . DIRECTORY_SEPARATOR . $path);
+        Assert::assertFileExists($this->workingDir . DIRECTORY_SEPARATOR . $path);
     }
 
     /**
@@ -248,7 +252,7 @@ class FeatureContext implements Context, SnippetAcceptingContext
      */
     public function directoryShouldNotExist($path)
     {
-        PHPUnit_Framework_Assert::assertFileNotExists($this->workingDir . DIRECTORY_SEPARATOR . $path);
+        Assert::assertFileDoesNotExist($this->workingDir . DIRECTORY_SEPARATOR . $path);
     }
 
     /**
@@ -260,7 +264,7 @@ class FeatureContext implements Context, SnippetAcceptingContext
      */
     public function iSetEnvironmentVariable(PyStringNode $value)
     {
-        $this->process->setEnv(array('BEHAT_PARAMS' => (string) $value));
+        $this->processEnv['BEHAT_PARAMS'] = (string) $value;
     }
 
     /**
@@ -288,7 +292,7 @@ class FeatureContext implements Context, SnippetAcceptingContext
     public function fileShouldContain($path, PyStringNode $text)
     {
         $path = $this->workingDir . '/' . $path;
-        PHPUnit_Framework_Assert::assertFileExists($path);
+        Assert::assertFileExists($path);
 
         $fileContent = trim(file_get_contents($path));
         // Normalize the line endings in the output
@@ -296,7 +300,7 @@ class FeatureContext implements Context, SnippetAcceptingContext
             $fileContent = str_replace(PHP_EOL, "\n", $fileContent);
         }
 
-        PHPUnit_Framework_Assert::assertEquals($this->getExpectedOutput($text), $fileContent);
+        Assert::assertEquals($this->getExpectedOutput($text), $fileContent);
     }
 
     /**
@@ -308,7 +312,7 @@ class FeatureContext implements Context, SnippetAcceptingContext
      */
     public function theOutputShouldContain(PyStringNode $text)
     {
-        PHPUnit_Framework_Assert::assertContains($this->getExpectedOutput($text), $this->getOutput());
+        Assert::assertStringContainsString($this->getExpectedOutput($text), $this->getOutput());
     }
 
     /**
@@ -318,7 +322,7 @@ class FeatureContext implements Context, SnippetAcceptingContext
      */
     public function theOutputShouldMatch(PyStringNode $string)
     {
-        PHPUnit_Framework_Assert::assertRegExp('/^'.$string.'$/', $this->getOutput());
+        Assert::assertMatchesRegularExpression('/^'.$string.'$/', $this->getOutput());
     }
 
     private function getExpectedOutput(PyStringNode $expectedText)
@@ -361,13 +365,13 @@ class FeatureContext implements Context, SnippetAcceptingContext
                 echo 'Actual output:' . PHP_EOL . PHP_EOL . $this->getOutput();
             }
 
-            PHPUnit_Framework_Assert::assertNotEquals(0, $this->getExitCode());
+            Assert::assertNotEquals(0, $this->getExitCode());
         } else {
             if (0 !== $this->getExitCode()) {
                 echo 'Actual output:' . PHP_EOL . PHP_EOL . $this->getOutput();
             }
 
-            PHPUnit_Framework_Assert::assertEquals(0, $this->getExitCode());
+            Assert::assertEquals(0, $this->getExitCode());
         }
     }
 
