@@ -88,9 +88,10 @@ until [ -z "${1}" ] ; do
       ;;
     *)
       if [ -z "${queue}" ] ; then
-	    queue=${1}
+	      queue=${1}
       elif [ -z "${task}" ] ; then
-	    task=$*
+	      task=${*}
+	      break 2
       fi
   esac
   shift

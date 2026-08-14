@@ -15,6 +15,16 @@ Feature: sqs-add
         Then file "0" should exist
 
 
+    Scenario: Call 'sqs add' stores task verbatim including options
+        When I run "sqs add" with "myqueue echo -n 'hello world'"
+        Then it should pass
+        When I am in the "var/sqs/myqueue/wait" path
+        Then "0" file should contain:
+        """
+        echo -n hello world
+        """
+
+
     Scenario: Call 'sqs add myqueue'
         When I run "sqs add" with "myqueue"
         Then it should fail
