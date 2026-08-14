@@ -134,7 +134,7 @@ touch ${queuedir}/info/ionice || exit ${E_FAILURE}
 echo "-1"                 > ${queuedir}/info/ntask
 echo "master=$(hostname)" > ${queuedir}/info/options
 echo "halt"               > ${queuedir}/info/state
-echo "melete:8"           > ${queuedir}/info/nproc
+echo "$(hostname):8"      > ${queuedir}/info/nproc
 
 sqsguard unlock ${vardir} ${key} || abort "sqs-init: cannot unlock '${vardir}'"
 
